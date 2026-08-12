@@ -1,0 +1,11 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "chrome",
+            "request": "launch",
+            "name": "Open login.html",
+            "file": "C:\\Users\\Teju\\Desktop\\Multispectral-Image-fusion-for-Agriculture-main\\frontend\\login.html"
+        }
+    ]
+}

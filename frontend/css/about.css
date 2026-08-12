@@ -1,0 +1,101 @@
+/* =========================================================
+   About page — overview blocks, objectives, workflow, team
+   ========================================================= */
+
+.about-block { padding: var(--space-6); }
+.about-block h3 { font-size: 18px; font-weight: 800; margin-bottom: var(--space-3); }
+.about-block p { font-size: 14px; line-height: 1.7; color: var(--color-text-dark); }
+
+.about-objective {
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.about-objective__num {
+  font-size: 22px;
+  font-weight: 800;
+  color: rgba(46, 125, 50, 0.35);
+}
+.about-objective p { font-size: 13.5px; line-height: 1.6; color: var(--color-text-dark); }
+
+.workflow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  overflow-x: auto;
+  padding-bottom: var(--space-2);
+}
+.workflow__step {
+  flex-shrink: 0;
+  width: 160px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  background-color: rgba(46, 125, 50, 0.04);
+}
+.workflow__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: var(--color-white);
+  box-shadow: var(--shadow-card);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.workflow__icon svg { width: 20px; height: 20px; }
+.workflow__step strong { font-size: 13px; }
+.workflow__step span { font-size: 11.5px; color: var(--color-text-muted); }
+.workflow__arrow { flex-shrink: 0; font-size: 20px; color: rgba(46,125,50,0.4); font-weight: 700; }
+
+.tech-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-3); }
+.tech-chip {
+  padding: var(--space-4);
+  text-align: center;
+  font-weight: 700;
+  font-size: 13.5px;
+  color: var(--color-primary);
+}
+
+.team-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-4); }
+.team-card {
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+}
+.team-card__avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  color: #fff;
+  font-weight: 800;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--space-2);
+}
+.team-card strong { font-size: 13.5px; }
+.team-card span { font-size: 12px; color: var(--color-text-muted); }
+
+.about-references { padding-left: 20px; }
+.about-references li { font-size: 13.5px; line-height: 1.9; color: var(--color-text-dark); }
+
+@media (max-width: 1024px) {
+  .tech-grid { grid-template-columns: repeat(2, 1fr); }
+  .team-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 640px) {
+  .tech-grid { grid-template-columns: 1fr 1fr; }
+  .team-grid { grid-template-columns: 1fr; }
+}

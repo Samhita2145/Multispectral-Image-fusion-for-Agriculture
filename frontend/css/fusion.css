@@ -1,0 +1,89 @@
+/* =========================================================
+   Image Fusion — comparison slider + controls
+   ========================================================= */
+
+.fusion-compare {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background-color: #eef3ef;
+  user-select: none;
+  cursor: ew-resize;
+}
+
+.fusion-compare__after,
+.fusion-compare__before {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.fusion-compare__before {
+  clip-path: inset(0 50% 0 0);
+  box-shadow: 2px 0 0 0 #fff;
+}
+
+.fusion-compare__handle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 40px;
+  height: 40px;
+  background-color: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-primary);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+.fusion-compare__handle svg { width: 20px; height: 20px; }
+
+.fusion-compare__label {
+  position: absolute;
+  top: var(--space-3);
+  background: rgba(20, 30, 22, 0.65);
+  color: #fff;
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: var(--radius-pill);
+  backdrop-filter: blur(6px);
+}
+.fusion-compare__label--left { left: var(--space-3); }
+.fusion-compare__label--right { right: var(--space-3); }
+
+.fusion-controls { margin-top: var(--space-5); display: flex; flex-direction: column; gap: var(--space-4); }
+.fusion-controls__row { display: flex; align-items: center; gap: var(--space-4); }
+.fusion-controls__row label { width: 140px; flex-shrink: 0; font-size: 13px; font-weight: 700; color: var(--color-text-muted); }
+.fusion-controls__row input[type="range"] {
+  flex: 1;
+  accent-color: var(--color-primary);
+  height: 6px;
+}
+
+.fusion-info-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 13.5px;
+}
+.fusion-info-row:last-of-type { border-bottom: none; }
+.fusion-info-row span { color: var(--color-text-muted); }
+
+@media (max-width: 768px) {
+  .fusion-controls__row { flex-direction: column; align-items: flex-start; gap: var(--space-2); }
+  .fusion-controls__row label { width: auto; }
+}
