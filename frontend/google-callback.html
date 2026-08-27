@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Signing you in… · Multispectral Image Fusion</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/modules.css">
+  <link rel="stylesheet" href="css/login.css">
+  <link rel="stylesheet" href="css/animations.css">
+  <link rel="stylesheet" href="css/responsive.css">
+</head>
+<body class="login-body">
+
+  <div class="bg-glow bg-glow--top-left" aria-hidden="true"></div>
+  <div class="bg-glow bg-glow--bottom-right" aria-hidden="true"></div>
+
+  <div class="login-screen" style="grid-template-columns: 1fr;">
+    <div class="login-form-side">
+      <div class="login-card glass-card" style="text-align:center;">
+        <div class="login-card__header">
+          <img src="assets/logo.png" alt="logo" class="login-card__logo">
+        </div>
+        <div class="spinner" style="margin: var(--space-5) auto;"></div>
+        <p id="googleCallbackStatus">Completing Google sign-in…</p>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script>
+    (function () {
+      var statusEl = document.getElementById('googleCallbackStatus');
+
+      function goToLogin(message) {
+        var params = new URLSearchParams();
+        if (message) params.set('google_error', message);
+        window.location.href = 'login.html' + (message ? '?' + params.toString() : '');
+      }
+
+      // The backend redirects here with the token in the URL *fragment*
+      // (not a query param) so it never gets sent to any server in a
+      // Referer header or logged in server access logs.
+      var hash = window.location.hash.startsWith('#') ? window.location.hash.slice(1) : '';
+      var token = new URLSearchParams(hash).get('token');
+
+      if (!token) {
+        statusEl.textContent = 'Google sign-in did not return a token. Redirecting to login…';
+        setTimeout(function () { goToLogin('Google sign-in did not complete. Please try again.'); }, 1200);
+        return;
+      }
+
+      API.completeExternalLogin(token)
+        .then(function () {
+          statusEl.textContent = 'Signed in! Redirecting…';
+          window.location.href = 'index.html';
+        })
+        .catch(function (err) {
+          statusEl.textContent = 'Could not complete sign-in: ' + err.message;
+          setTimeout(function () { goToLogin('Could not complete Google sign-in. Please try again.'); }, 1800);
+        });
+    })();
+  </script>
+</body>
+</html>
