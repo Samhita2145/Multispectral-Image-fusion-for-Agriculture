@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+venv/
+env/
+.venv/
+*.egg-info/
+
+# Environment / secrets
+.env
+backend/.env
+
+# Databases
+*.db
+database/
+backend/database/
+
+# Runtime/user-generated files
+uploads/
+backend/uploads/
+generated_reports/
+backend/generated_reports/
+
+# OS/editor
+.DS_Store
+Thumbs.db
+*.swp
+
+# Training generated files
+training_testing/X_features.npy
+training_testing/y_labels.npy
+training_testing/Preprocessed/
+
+# Local root artifacts
+/venv/
+/__pycache__/
+/uploads/
+/generated_reports/
+/database/
+
+# Keep required ML model artifacts
+# Do NOT ignore backend/ml_artifacts/

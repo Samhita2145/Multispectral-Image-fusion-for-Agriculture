@@ -1,16 +1,18 @@
 /**
- * Disease Detection page — upload -> REAL diagnosis using the trained
- * Gradient Boosting model (js/ml/rice-model.js + js/ml/model-data.json,
- * a pure-JS port of feature_fusion_gb_model.joblib — no backend). The
- * confidence ring, severity gauge and predicted class name are all
- * driven by the real model's output; symptoms/treatment/prevention
- * copy below is curated reference text keyed to that class name.
- * "Nearby similar cases" remains simulated (no location data exists
- * in this project — see js/ml/README.md).
+ * Disease Detection page — upload -> REAL diagnosis via the FastAPI
+ * backend (js/api.js -> POST /api/predict), which runs the trained
+ * scikit-learn Gradient Boosting model server-side
+ * (feature_fusion_gb_model.joblib when a Pseudo-NIR image is also
+ * supplied, otherwise feature_rgb_only_gb_model.joblib). The predicted
+ * class, confidence, and NDVI (when available) all come straight from
+ * that real model; symptoms/treatment/prevention copy below is curated
+ * reference text keyed to the returned class name.
+ * "Nearby similar cases" remains simulated (no location data exists in
+ * this project).
  */
 
 // Curated reference info per class. The actual predicted class +
-// confidence always come from RiceML (real model output).
+// confidence always come from the backend (real model output).
 const DETECTION_DATA = [
   {
     name: 'Healthy Rice Leaf', severity: 'none', severityPct: 5, badge: ['badge-soft--green', 'Healthy'],
@@ -37,7 +39,7 @@ const DETECTION_DATA = [
     prevention: 'Avoid excess nitrogen, maintain shallow standing water, and use blast-resistant varieties where available.'
   },
   {
-    name: 'Leaf Scald', severity: 'moderate', severityPct: 50, badge: ['badge-soft--amber', 'Moderate'],
+    name: 'Leaf scald', severity: 'moderate', severityPct: 50, badge: ['badge-soft--amber', 'Moderate'],
     symptoms: 'Alternating light-tan and reddish-brown bands running parallel to leaf veins, starting from leaf tips.',
     treatment: 'Apply fungicide if the infection spreads rapidly; otherwise cultural control is often sufficient.',
     prevention: 'Improve airflow via proper spacing, avoid leaf injury during handling, remove crop debris after harvest.'
@@ -50,7 +52,9 @@ const DETECTION_DATA = [
   }
 ];
 
-let ddUploadedImage = null;
+let ddRgbFile = null;
+let ddNirFile = null;
+let lastDdPrediction = null;
 
 function findDetectionEntry(className) {
   const norm = (s) => s.toLowerCase().replace(/\s+/g, ' ').trim();
@@ -64,8 +68,9 @@ function findDetectionEntry(className) {
 
 document.addEventListener('DOMContentLoaded', () => {
   initDDDropzone();
+  initNirUpload();
   initAccordion();
-  if (window.RiceML) RiceML.loadModel('js/ml/model-data-rgb-only.json').catch(() => {});
+  document.getElementById('ddDownloadReportBtn').addEventListener('click', downloadDdReport);
 });
 
 function initDDDropzone() {
@@ -79,17 +84,33 @@ function initDDDropzone() {
   fileInput.addEventListener('change', (e) => { const f = e.target.files[0]; if (f) handleDDFile(f); });
 }
 
+function initNirUpload() {
+  const btn = document.getElementById('ddNirBtn');
+  const input = document.getElementById('ddNirFileInput');
+  btn.addEventListener('click', () => input.click());
+  input.addEventListener('change', (e) => {
+    const f = e.target.files[0];
+    if (!f) return;
+    if (!f.type.startsWith('image/')) { toast('Please upload a valid image file for Pseudo-NIR', 'error'); return; }
+    ddNirFile = f;
+    const status = document.getElementById('ddNirStatus');
+    status.style.display = 'block';
+    status.textContent = `Pseudo-NIR attached: ${f.name} — fusion model + NDVI will be used on next diagnosis.`;
+    if (ddRgbFile) runDiagnosis();
+  });
+}
+
 function handleDDFile(file) {
   if (!file.type.startsWith('image/')) { toast('Please upload a valid image file', 'error'); return; }
+  if (file.size > 10 * 1024 * 1024) { toast('Image is larger than 10MB — please upload a smaller file', 'error'); return; }
+
+  ddRgbFile = file;
 
   const reader = new FileReader();
   reader.onload = (e) => {
     const tile = document.getElementById('ddPreviewTile');
     tile.innerHTML = `<img src="${e.target.result}" alt="Uploaded leaf">`;
-
-    const img = new Image();
-    img.onload = () => { ddUploadedImage = img; runDiagnosis(); };
-    img.src = e.target.result;
+    runDiagnosis();
   };
   reader.readAsDataURL(file);
 }
@@ -100,44 +121,25 @@ function runDiagnosis() {
   document.getElementById('ddNotLeaf').style.display = 'none';
   document.getElementById('ddLoading').style.display = 'block';
   document.getElementById('nearbyCasesSection').style.display = 'none';
+  document.getElementById('ddNdviAccordionItem').style.display = 'none';
 
-  if (!window.RiceML || !ddUploadedImage) {
-    toast('Model script failed to load (js/ml/rice-model.js missing?)', 'error');
+  if (!ddRgbFile) {
     document.getElementById('ddLoading').style.display = 'none';
     document.getElementById('ddEmpty').style.display = 'block';
     return;
   }
 
-  // Draw at the model's trained resolution (128x128) for feature extraction.
-  const inferCanvas = document.createElement('canvas');
-  inferCanvas.width = 128;
-  inferCanvas.height = 128;
-  const ictx = inferCanvas.getContext('2d');
-  const scale = Math.max(128 / ddUploadedImage.width, 128 / ddUploadedImage.height);
-  const dw = ddUploadedImage.width * scale, dh = ddUploadedImage.height * scale;
-  ictx.save();
-  ictx.translate((128 - dw) / 2, (128 - dh) / 2);
-  ictx.drawImage(ddUploadedImage, 0, 0, dw, dh);
-  ictx.restore();
-
-  const minRunTime = new Promise((resolve) => setTimeout(resolve, 800));
-
-  Promise.all([RiceML.predictFromCanvas(inferCanvas), minRunTime])
-    .then(([result]) => {
-      if (!result.looksLikeRiceLeaf) {
-        document.getElementById('ddLoading').style.display = 'none';
-        document.getElementById('ddNotLeaf').style.display = 'block';
-        toast("This doesn't look like a rice leaf photo", 'error');
-        return;
-      }
-
-      const data = findDetectionEntry(result.className);
+  API.predict(ddRgbFile, ddNirFile)
+    .then((result) => {
+      lastDdPrediction = result;
+      window.lastDdPrediction = result;
+      const data = findDetectionEntry(result.predicted_class);
       const confidence = result.confidence.toFixed(1);
 
       document.getElementById('ddLoading').style.display = 'none';
       document.getElementById('ddResult').style.display = 'block';
 
-      document.getElementById('ddDiseaseName').textContent = result.className;
+      document.getElementById('ddDiseaseName').textContent = result.predicted_class;
       document.getElementById('ddSymptoms').textContent = data.symptoms;
       document.getElementById('ddTreatment').textContent = data.treatment;
       document.getElementById('ddPrevention').textContent = data.prevention;
@@ -153,12 +155,53 @@ function runDiagnosis() {
       document.getElementById('ddConfidenceRing').style.strokeDashoffset = offset;
       document.getElementById('ddConfidenceNumber').textContent = confidence + '%';
 
+      const ndviItem = document.getElementById('ddNdviAccordionItem');
+      // Show backend-calculated NDVI Mean/Min/Max (from /api/predict ndvi
+      // object; features.NDVI_* are the same fusion-pipeline values).
+      const ndvi = result.ndvi || {};
+      const feats = result.features || {};
+      const ndviMean = ndvi.mean != null ? ndvi.mean : feats.NDVI_mean;
+      const ndviMin = ndvi.minimum != null ? ndvi.minimum : feats.NDVI_min;
+      const ndviMax = ndvi.maximum != null ? ndvi.maximum : feats.NDVI_max;
+      if (ndvi.available && ndviMean != null && ndviMin != null && ndviMax != null) {
+        document.getElementById('ddNdviMean').textContent = Number(ndviMean).toFixed(3);
+        document.getElementById('ddNdviMin').textContent = Number(ndviMin).toFixed(3);
+        document.getElementById('ddNdviMax').textContent = Number(ndviMax).toFixed(3);
+        const heatmapWrap = document.getElementById('ddNdviHeatmapWrap');
+        heatmapWrap.innerHTML = '';
+        ndviItem.style.display = 'block';
+
+        // Open the NDVI accordion so Mean/Min/Max are visible immediately.
+        document.querySelectorAll('.accordion-item').forEach((el) => {
+          el.classList.remove('is-open');
+          const p = el.querySelector('.accordion-panel');
+          if (p) p.style.maxHeight = null;
+        });
+        ndviItem.classList.add('is-open');
+        const panel = ndviItem.querySelector('.accordion-panel');
+        if (panel) panel.style.maxHeight = panel.scrollHeight + 'px';
+
+        if (ndvi.heatmap_url) {
+          API.authenticatedImageUrl(ndvi.heatmap_url)
+            .then((blobUrl) => {
+              heatmapWrap.innerHTML =
+                `<img src="${blobUrl}" alt="NDVI heatmap" style="max-width:160px;border-radius:8px;">`;
+              if (panel && ndviItem.classList.contains('is-open')) {
+                panel.style.maxHeight = panel.scrollHeight + 'px';
+              }
+            })
+            .catch(() => { /* heatmap optional */ });
+        }
+      } else {
+        ndviItem.style.display = 'none';
+      }
+
       if (data.severity !== 'none') {
         renderNearbyCases();
         document.getElementById('nearbyCasesSection').style.display = 'block';
       }
 
-      toast(`Diagnosis complete: ${result.className}`, 'success');
+      toast(`Diagnosis complete: ${result.predicted_class}`, 'success');
     })
     .catch((err) => {
       console.error(err);
@@ -182,6 +225,36 @@ function renderNearbyCases() {
   `).join('');
 }
 
+function downloadDdReport() {
+  if (!lastDdPrediction || !lastDdPrediction.prediction_id) {
+    toast('Run a diagnosis first', 'error');
+    return;
+  }
+  const btn = document.getElementById('ddDownloadReportBtn');
+  const originalText = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Generating report…';
+
+  API.generateReport(lastDdPrediction.prediction_id)
+    .then((report) => API.downloadReportBlob(report.id))
+    .then((blob) => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `analysis-report-${lastDdPrediction.prediction_id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast('Report generated and downloaded', 'success');
+    })
+    .catch((err) => toast('Report generation failed: ' + err.message, 'error'))
+    .finally(() => {
+      btn.disabled = false;
+      btn.innerHTML = originalText;
+    });
+}
+
 function initAccordion() {
   document.querySelectorAll('.accordion-trigger').forEach((trigger) => {
     trigger.addEventListener('click', () => {
@@ -201,7 +274,6 @@ function initAccordion() {
     });
   });
 
-  // Set initial open panel height
   const openPanel = document.querySelector('.accordion-item.is-open .accordion-panel');
   if (openPanel) openPanel.style.maxHeight = openPanel.scrollHeight + 'px';
 }

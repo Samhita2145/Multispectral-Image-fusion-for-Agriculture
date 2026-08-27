@@ -108,6 +108,38 @@
     </div>
   </div>
 
+  <div class="modal-overlay" id="registerModal">
+    <div class="modal-box" style="max-width: 440px;">
+      <div class="modal-box__header">
+        <span class="modal-box__title">Create your account</span>
+        <button class="modal-close" data-close-modal>
+          <svg viewBox="0 0 24 24" fill="none"><path d="M6 6L18 18M18 6L6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <form id="registerForm" novalidate>
+        <div class="field" id="registerNameField">
+          <label for="registerName">Full name</label>
+          <input class="input" type="text" id="registerName" placeholder="Jane Farmer" autocomplete="name">
+          <span class="field__error">Please enter your name.</span>
+        </div>
+        <div class="field" id="registerEmailField">
+          <label for="registerEmail">Email address</label>
+          <input class="input" type="email" id="registerEmail" placeholder="you@agri.edu" autocomplete="email">
+          <span class="field__error">Please enter a valid email address.</span>
+        </div>
+        <div class="field" id="registerPasswordField">
+          <label for="registerPassword">Password</label>
+          <input class="input" type="password" id="registerPassword" placeholder="At least 8 characters, with a letter and a number" autocomplete="new-password">
+          <span class="field__error">Password must be at least 8 characters and include a letter and a number.</span>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block" id="registerSubmit">
+          <span id="registerSubmitText">Create account</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
   <script src="js/app.js"></script>
   <script src="js/login.js"></script>
 </body>

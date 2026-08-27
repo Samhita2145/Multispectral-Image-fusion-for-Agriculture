@@ -2,18 +2,20 @@
  * Image Analysis page
  * - Drag & drop / browse upload
  * - Generates Original / RGB / Pseudo-NIR / Fusion previews on <canvas>
- *   using simple, deterministic pixel-math (no real spectral sensor data —
- *   this is a frontend-only simulation clearly using the uploaded photo).
- * - Runs REAL classification using the trained Gradient Boosting model
- *   (js/ml/rice-model.js + js/ml/model-data.json — a pure-JS port of
- *   training_testing/feature_fusion_gb_model.joblib, no backend needed).
- *   The predicted class name + confidence come straight out of the real
- *   model; severity/treatment copy below is curated reference text keyed
- *   to that class name.
+ *   using simple, deterministic pixel-math (frontend-only visual preview —
+ *   unchanged from before).
+ * - Runs REAL classification via the FastAPI backend (js/api.js -> POST
+ *   /api/predict), which loads the trained scikit-learn Gradient Boosting
+ *   model (feature_fusion_gb_model.joblib / feature_rgb_only_gb_model.joblib)
+ *   server-side. The predicted class name + confidence + NDVI (when
+ *   available) all come straight from that real model; severity/treatment
+ *   copy below is curated reference text keyed to the returned class name.
+ * - "Download PDF Report" now generates & downloads a real ReportLab PDF
+ *   from the backend instead of a local .txt file.
  */
 
 // Curated reference info per class (severity/treatment copy). The actual
-// predicted class + confidence always come from RiceML (real model output).
+// predicted class + confidence always come from the backend (real model output).
 const DISEASE_CLASSES = [
   {
     name: 'Healthy Rice Leaf',
@@ -40,7 +42,7 @@ const DISEASE_CLASSES = [
     treatment: 'Apply tricyclazole-based fungicide at early stage, reduce nitrogen dosage, and maintain shallow standing water in the field.'
   },
   {
-    name: 'Leaf Scald',
+    name: 'Leaf scald',
     severity: 'moderate',
     severityPct: 48,
     treatment: 'Improve field ventilation by adjusting plant spacing, avoid leaf injury during handling, and apply fungicide if spread continues.'
@@ -54,11 +56,9 @@ const DISEASE_CLASSES = [
 ];
 
 let uploadedImage = null;
+let uploadedFile = null;
 let lastPrediction = null;
 
-// Look up the curated reference entry for a class name returned by the
-// real model (classes.json spelling, e.g. "Leaf scald") — case/spacing
-// insensitive so it still matches DISEASE_CLASSES (e.g. "Leaf Scald").
 function findDiseaseEntry(className) {
   const norm = (s) => s.toLowerCase().replace(/\s+/g, ' ').trim();
   return DISEASE_CLASSES.find((d) => norm(d.name) === norm(className)) || {
@@ -70,9 +70,6 @@ function findDiseaseEntry(className) {
 document.addEventListener('DOMContentLoaded', () => {
   initDropzone();
   initButtons();
-  // Warm up the model fetch in the background so the first "Analyse"
-  // click doesn't have to wait on the network.
-  if (window.RiceML) RiceML.loadModel('js/ml/model-data-rgb-only.json').catch(() => {});
 });
 
 function initDropzone() {
@@ -110,6 +107,12 @@ function handleFile(file) {
     toast('Please upload a valid image file', 'error');
     return;
   }
+  if (file.size > 10 * 1024 * 1024) {
+    toast('Image is larger than 10MB — please upload a smaller file', 'error');
+    return;
+  }
+
+  uploadedFile = file;
 
   const reader = new FileReader();
   reader.onload = (e) => {
@@ -142,8 +145,6 @@ function renderPreviews(img) {
     const px = data.data;
     for (let i = 0; i < px.length; i += 4) {
       const r = px[i], g = px[i + 1], b = px[i + 2];
-      // False-color NIR simulation: healthy vegetation (high green)
-      // is remapped toward red/pink, as in real NIR false-color photography.
       px[i] = Math.min(255, g * 1.35 + 20);
       px[i + 1] = Math.min(255, r * 0.6);
       px[i + 2] = Math.min(255, 255 - b * 0.7);
@@ -178,13 +179,11 @@ function drawTile(tileId, img, label, drawFn) {
   canvas.height = size;
   const ctx = canvas.getContext('2d');
 
-  // Cover-fit draw
   const scale = Math.max(size / img.width, size / img.height);
   const dw = img.width * scale;
   const dh = img.height * scale;
   ctx.save();
   ctx.translate((size - dw) / 2, (size - dh) / 2);
-  const scaledImg = { width: dw, height: dh };
   ctx.drawImage(img, 0, 0, dw, dh);
   ctx.restore();
 
@@ -204,7 +203,7 @@ function initButtons() {
 }
 
 function runAnalysis() {
-  if (!uploadedImage) return;
+  if (!uploadedFile) return;
 
   const btn = document.getElementById('analyseBtn');
   const btnText = document.getElementById('analyseBtnText');
@@ -215,50 +214,19 @@ function runAnalysis() {
   document.getElementById('predictionResult').style.display = 'none';
   document.getElementById('predictionNotLeaf').style.display = 'none';
   document.getElementById('predictionLoading').style.display = 'block';
+  document.getElementById('ndviBox').style.display = 'none';
 
-  if (!window.RiceML) {
-    toast('Model script failed to load (js/ml/rice-model.js missing?)', 'error');
-    document.getElementById('predictionLoading').style.display = 'none';
-    document.getElementById('predictionEmpty').style.display = 'block';
-    btn.disabled = false;
-    btnText.textContent = 'Analyse Image';
-    return;
-  }
-
-  // Draw the upload at the same 128x128 resolution the model was trained
-  // on, then run the real Gradient Boosting classifier on it.
-  const inferCanvas = document.createElement('canvas');
-  inferCanvas.width = 128;
-  inferCanvas.height = 128;
-  const ictx = inferCanvas.getContext('2d');
-  const scale = Math.max(128 / uploadedImage.width, 128 / uploadedImage.height);
-  const dw = uploadedImage.width * scale, dh = uploadedImage.height * scale;
-  ictx.save();
-  ictx.translate((128 - dw) / 2, (128 - dh) / 2);
-  ictx.drawImage(uploadedImage, 0, 0, dw, dh);
-  ictx.restore();
-
-  const minRunTime = new Promise((resolve) => setTimeout(resolve, 900));
-
-  Promise.all([RiceML.predictFromCanvas(inferCanvas), minRunTime])
-    .then(([result]) => {
-      if (!result.looksLikeRiceLeaf) {
-        document.getElementById('predictionLoading').style.display = 'none';
-        document.getElementById('predictionNotLeaf').style.display = 'block';
-        btn.disabled = false;
-        btnText.textContent = 'Analyse Image';
-        toast("This doesn't look like a rice leaf photo", 'error');
-        return;
-      }
-
-      const entry = findDiseaseEntry(result.className);
+  API.predict(uploadedFile)
+    .then((result) => {
+      const entry = findDiseaseEntry(result.predicted_class);
       const confidence = result.confidence.toFixed(1);
-      lastPrediction = { ...entry, name: result.className, confidence, date: new Date().toLocaleString() };
+      lastPrediction = { ...result, ...entry, name: result.predicted_class, confidence };
+      window.lastPrediction = lastPrediction;
 
       document.getElementById('predictionLoading').style.display = 'none';
       document.getElementById('predictionResult').style.display = 'block';
 
-      document.getElementById('diseaseName').textContent = result.className;
+      document.getElementById('diseaseName').textContent = result.predicted_class;
       document.getElementById('treatmentText').textContent = entry.treatment;
 
       const severityBadge = document.getElementById('severityBadge');
@@ -278,10 +246,33 @@ function runAnalysis() {
       document.getElementById('confidenceRing').style.strokeDashoffset = offset;
       document.getElementById('confidenceNumber').textContent = confidence + '%';
 
+      const ndviBox = document.getElementById('ndviBox');
+      // Display backend-calculated NDVI stats only (ndvi.* from /api/predict;
+      // features.NDVI_* are the same pipeline values when fusion was used).
+      const ndvi = result.ndvi || {};
+      const feats = result.features || {};
+      const ndviMean = ndvi.mean != null ? ndvi.mean : feats.NDVI_mean;
+      const ndviMin = ndvi.minimum != null ? ndvi.minimum : feats.NDVI_min;
+      const ndviMax = ndvi.maximum != null ? ndvi.maximum : feats.NDVI_max;
+      if (ndvi.available && ndviMean != null && ndviMin != null && ndviMax != null) {
+        document.getElementById('ndviMean').textContent = Number(ndviMean).toFixed(3);
+        document.getElementById('ndviMin').textContent = Number(ndviMin).toFixed(3);
+        document.getElementById('ndviMax').textContent = Number(ndviMax).toFixed(3);
+        document.getElementById('ndviNote').textContent = ndvi.note || '';
+        ndviBox.style.display = 'block';
+      } else {
+        document.getElementById('ndviNote').textContent =
+          ndvi.note || 'NDVI requires a paired Pseudo-NIR image.';
+        ndviBox.style.display = 'block';
+        document.getElementById('ndviMean').textContent = '—';
+        document.getElementById('ndviMin').textContent = '—';
+        document.getElementById('ndviMax').textContent = '—';
+      }
+
       btn.disabled = false;
       btnText.textContent = 'Re-analyse';
 
-      toast(`Prediction complete: ${result.className}`, 'success');
+      toast(`Prediction complete: ${result.predicted_class}`, 'success');
     })
     .catch((err) => {
       console.error(err);
@@ -295,6 +286,7 @@ function runAnalysis() {
 
 function resetPage() {
   uploadedImage = null;
+  uploadedFile = null;
   lastPrediction = null;
   document.getElementById('fileInput').value = '';
   document.getElementById('tile-original').innerHTML = '<div class="preview-tile__empty">Original will appear here</div>';
@@ -308,36 +300,40 @@ function resetPage() {
   document.getElementById('predictionResult').style.display = 'none';
   document.getElementById('predictionNotLeaf').style.display = 'none';
   document.getElementById('predictionLoading').style.display = 'none';
+  document.getElementById('ndviBox').style.display = 'none';
 
   toast('Workspace reset', 'success');
 }
 
 function downloadReport() {
-  if (!lastPrediction) return;
+  if (!lastPrediction || !lastPrediction.prediction_id) {
+    toast('Run an analysis first', 'error');
+    return;
+  }
 
-  const content = `MULTISPECTRAL IMAGE FUSION FOR AGRICULTURE
-Disease Analysis Report
---------------------------------------------
-Date: ${lastPrediction.date}
-Predicted Disease: ${lastPrediction.name}
-Confidence: ${lastPrediction.confidence}%
-Severity: ${lastPrediction.severity.toUpperCase()}
+  const btn = document.getElementById('downloadReportBtn');
+  const originalText = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Generating report…';
 
-Suggested Treatment:
-${lastPrediction.treatment}
-
---------------------------------------------
-Generated by Multispectral Image Fusion for Agriculture
-Model: Gradient Boosting (RGB + Pseudo-NIR fusion features)
-`;
-
-  const blob = new Blob([content], { type: 'text/plain' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `analysis-report-${Date.now()}.txt`;
-  a.click();
-  URL.revokeObjectURL(url);
-
-  toast('Report downloaded', 'success');
+  API.generateReport(lastPrediction.prediction_id)
+    .then((report) => API.downloadReportBlob(report.id))
+    .then((blob) => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `analysis-report-${lastPrediction.prediction_id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast('Report generated and downloaded', 'success');
+    })
+    .catch((err) => {
+      toast('Report generation failed: ' + err.message, 'error');
+    })
+    .finally(() => {
+      btn.disabled = false;
+      btn.innerHTML = originalText;
+    });
 }

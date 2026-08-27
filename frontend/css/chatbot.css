@@ -128,6 +128,13 @@
   flex-shrink: 0;
 }
 
+.chatbot-panel__actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.chatbot-panel__expand,
 .chatbot-panel__close {
   width: 30px;
   height: 30px;
@@ -137,10 +144,25 @@
   justify-content: center;
   color: var(--color-white);
   flex-shrink: 0;
+  transition: background-color 0.2s ease;
 }
 
+.chatbot-panel__expand:hover,
 .chatbot-panel__close:hover { background-color: rgba(255, 255, 255, 0.18); }
+
+.chatbot-panel__expand svg,
 .chatbot-panel__close svg { width: 16px; height: 16px; }
+
+.chatbot-panel__expand .chatbot-collapse-icon { display: none; }
+.chatbot-panel.is-expanded .chatbot-panel__expand .chatbot-expand-icon { display: none; }
+.chatbot-panel.is-expanded .chatbot-panel__expand .chatbot-collapse-icon { display: block; }
+
+.chatbot-panel.is-expanded {
+  width: 560px;
+  height: 680px;
+  max-width: calc(100vw - 40px);
+  max-height: calc(100vh - 120px);
+}
 
 .chatbot-panel__messages {
   flex: 1;
@@ -200,11 +222,49 @@
   30% { transform: translateY(-4px); opacity: 1; }
 }
 
+.chatbot-panel__suggestions-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px 4px;
+  background-color: var(--color-bg);
+  flex-shrink: 0;
+}
+
+.chatbot-panel__suggestions-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.chatbot-suggestions__dismiss {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted);
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.chatbot-suggestions__dismiss:hover {
+  background-color: rgba(0, 0, 0, 0.08);
+  color: var(--color-text-dark);
+}
+
+.chatbot-suggestions__dismiss svg {
+  width: 13px;
+  height: 13px;
+}
+
 .chatbot-panel__suggestions {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  padding: 0 16px 12px;
+  padding: 0 16px 10px;
   background-color: var(--color-bg);
   flex-shrink: 0;
 }

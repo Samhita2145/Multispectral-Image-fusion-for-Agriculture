@@ -1,80 +1,105 @@
 /**
- * Reports page — list of generated reports, a distribution chart
- * (Chart.js), and a printable report-sheet preview. "Download PDF"
- * uses the browser's native print-to-PDF via a print-scoped
- * stylesheet (css/reports.css @media print) — no external PDF
- * library required, and it works fully offline.
+ * Reports page — REAL reports backed by the FastAPI backend.
+ *   - "Generate Report" creates a PDF (via POST /api/reports/{prediction_id})
+ *     for the user's most recent analysis (GET /api/history) and opens a
+ *     preview.
+ *   - The reports list + "Reports by Disease Type" chart are built from
+ *     GET /api/reports (the user's own generated reports only).
+ *   - "Download PDF" fetches the real ReportLab-generated PDF from the
+ *     backend (GET /api/reports/{id}/download) instead of browser print.
+ *
+ * Curated summary/treatment copy per disease class is still used for the
+ * on-page preview card (kept from the original demo copy); the actual
+ * downloaded PDF's content always comes from the backend's real
+ * prediction + NDVI + model data.
  */
 
-const REPORT_DISEASES = [
-  { name: 'Healthy Rice Leaf', severity: 'Healthy', summary: 'No disease indicators detected. Leaf tissue shows normal chlorophyll distribution across both RGB and fused NDVI bands.', treatment: 'No treatment required — continue routine monitoring.' },
-  { name: 'Bacterial Leaf Blight', severity: 'Severe', summary: 'Water-soaked lesions detected along leaf margins, consistent with bacterial leaf blight. NDVI fusion shows a sharp vegetation-index drop in affected regions.', treatment: 'Apply copper-based bactericide and improve field drainage. Remove severely infected leaves.' },
-  { name: 'Brown Spot', severity: 'Moderate', summary: 'Circular brown lesions with gray centers identified across the leaf blade. Fusion contrast indicates early-to-mid stage infection.', treatment: 'Apply mancozeb-based fungicide and ensure balanced potassium nutrition.' },
-  { name: 'Leaf Blast', severity: 'Severe', summary: 'Diamond-shaped lesions with defined margins detected, indicating active leaf blast infection with moderate spread.', treatment: 'Apply tricyclazole-based fungicide promptly and reduce nitrogen application.' },
-  { name: 'Leaf Scald', severity: 'Moderate', summary: 'Alternating tan and brown banding pattern detected from leaf tip inward, typical of leaf scald.', treatment: 'Improve field ventilation and monitor for spread; apply fungicide if progression continues.' },
-  { name: 'Sheath Blight', severity: 'Moderate', summary: 'Lesions detected near the sheath waterline with irregular borders, consistent with sheath blight.', treatment: 'Apply hexaconazole fungicide and reduce planting density to lower canopy humidity.' }
-];
+const REPORT_DISEASE_COPY = {
+  'Healthy Rice Leaf': { severity: 'Healthy', summary: 'No disease indicators detected. Leaf tissue shows normal chlorophyll distribution.', treatment: 'No treatment required — continue routine monitoring.' },
+  'Bacterial Leaf Blight': { severity: 'Severe', summary: 'Water-soaked lesions detected along leaf margins, consistent with bacterial leaf blight.', treatment: 'Apply copper-based bactericide and improve field drainage. Remove severely infected leaves.' },
+  'Brown Spot': { severity: 'Moderate', summary: 'Circular brown lesions with gray centers identified across the leaf blade.', treatment: 'Apply mancozeb-based fungicide and ensure balanced potassium nutrition.' },
+  'Leaf Blast': { severity: 'Severe', summary: 'Diamond-shaped lesions with defined margins detected, indicating active leaf blast infection.', treatment: 'Apply tricyclazole-based fungicide promptly and reduce nitrogen application.' },
+  'Leaf scald': { severity: 'Moderate', summary: 'Alternating tan and brown banding pattern detected from leaf tip inward, typical of leaf scald.', treatment: 'Improve field ventilation and monitor for spread; apply fungicide if progression continues.' },
+  'Sheath Blight': { severity: 'Moderate', summary: 'Lesions detected near the sheath waterline with irregular borders, consistent with sheath blight.', treatment: 'Apply hexaconazole fungicide and reduce planting density to lower canopy humidity.' }
+};
+
+function copyFor(diseaseName) {
+  return REPORT_DISEASE_COPY[diseaseName] || { severity: 'Moderate', summary: 'Analysis complete.', treatment: 'Consult a local agronomist to confirm this diagnosis.' };
+}
 
 let reports = [];
 let reportChart = null;
+let currentPreviewReportId = null;
 
 document.addEventListener('DOMContentLoaded', () => {
   loadReports();
-  renderChart();
-  renderReportsList();
 
-  document.getElementById('generateReportBtn').addEventListener('click', generateReport);
-  document.getElementById('downloadPdfBtn').addEventListener('click', () => window.print());
+  document.getElementById('generateReportBtn').addEventListener('click', generateReportFromLatestAnalysis);
+  document.getElementById('downloadPdfBtn').addEventListener('click', downloadCurrentPreview);
 });
 
-function loadReports() {
-  const saved = sessionStorage.getItem('mif_reports');
-  if (saved) {
-    reports = JSON.parse(saved);
-  } else {
-    reports = [
-      seedReport(0, 4), seedReport(1, 2), seedReport(2, 0), seedReport(3, 1)
-    ];
-    persistReports();
-  }
-}
-
-function seedReport(diseaseIndex, daysAgo) {
-  const d = REPORT_DISEASES[diseaseIndex];
-  const date = new Date();
-  date.setDate(date.getDate() - daysAgo);
+function mapReport(r) {
+  const copy = copyFor(r.predicted_class);
   return {
-    id: 'RPT-' + (10234 + diseaseIndex),
-    disease: d.name,
-    severity: d.severity,
-    summary: d.summary,
-    treatment: d.treatment,
-    confidence: (84 + Math.random() * 14).toFixed(1),
-    date: date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+    id: r.id,
+    predictionId: r.prediction_id,
+    disease: r.predicted_class || 'Unknown',
+    severity: copy.severity,
+    summary: copy.summary,
+    treatment: copy.treatment,
+    confidence: r.confidence != null ? r.confidence.toFixed(1) : '—',
+    date: new Date(r.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
+    rgbImageRel: r.rgb_image_url || null
   };
 }
 
-function persistReports() {
-  sessionStorage.setItem('mif_reports', JSON.stringify(reports));
+function loadReports() {
+  const container = document.getElementById('reportsList');
+  container.innerHTML = `<div class="empty-state glass-card"><div class="empty-state__title">Loading reports…</div></div>`;
+
+  API.listReports()
+    .then((data) => {
+      reports = data.map(mapReport);
+      renderReportsList();
+    })
+    .catch((err) => {
+      container.innerHTML = `<div class="empty-state glass-card">
+        <div class="empty-state__title">Couldn't load reports</div>
+        <div>${err.message}</div>
+      </div>`;
+      toast('Failed to load reports: ' + err.message, 'error');
+    });
 }
 
-function generateReport() {
-  const d = REPORT_DISEASES[Math.floor(Math.random() * REPORT_DISEASES.length)];
-  const report = {
-    id: 'RPT-' + Math.floor(10000 + Math.random() * 89999),
-    disease: d.name,
-    severity: d.severity,
-    summary: d.summary,
-    treatment: d.treatment,
-    confidence: (82 + Math.random() * 16).toFixed(1),
-    date: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
-  };
-  reports.unshift(report);
-  persistReports();
-  renderReportsList();
-  renderChart();
-  toast('New report generated', 'success');
-  openReportPreview(report);
+function generateReportFromLatestAnalysis() {
+  const btn = document.getElementById('generateReportBtn');
+  btn.disabled = true;
+
+  API.getHistory(1, 1)
+    .then((data) => {
+      const items = data.items || [];
+      if (!items.length) {
+        toast('Run an analysis on Disease Detection or Image Analysis first', 'error');
+        return null;
+      }
+      return API.generateReport(items[0].id);
+    })
+    .then((report) => {
+      if (!report) return;
+      toast('New report generated', 'success');
+      return loadReportsAndPreview(report.id);
+    })
+    .catch((err) => toast('Report generation failed: ' + err.message, 'error'))
+    .finally(() => { btn.disabled = false; });
+}
+
+function loadReportsAndPreview(reportId) {
+  return API.listReports().then((data) => {
+    reports = data.map(mapReport);
+    renderReportsList();
+    const r = reports.find((x) => x.id === reportId);
+    if (r) openReportPreview(r);
+  });
 }
 
 function severityIcon() {
@@ -84,7 +109,7 @@ function severityIcon() {
 function renderReportsList() {
   const container = document.getElementById('reportsList');
   if (!reports.length) {
-    container.innerHTML = `<div class="empty-state glass-card"><div class="empty-state__title">No reports yet</div><div>Click "Generate Report" to create one.</div></div>`;
+    container.innerHTML = `<div class="empty-state glass-card"><div class="empty-state__title">No reports yet</div><div>Click "Generate Report" to create one from your latest analysis.</div></div>`;
     return;
   }
 
@@ -98,7 +123,7 @@ function renderReportsList() {
       <span class="report-card__icon">${severityIcon()}</span>
       <div class="report-card__body">
         <div class="report-card__title">${r.disease} <span class="badge-soft ${severityToBadgeClass(r.severity)}" style="margin-left:8px;">${r.severity}</span></div>
-        <div class="report-card__meta">${r.id} · ${r.date} · ${r.confidence}% confidence</div>
+        <div class="report-card__meta">RPT-${r.id} · ${r.date} · ${r.confidence}% confidence</div>
       </div>
       <div class="report-card__actions">
         <button class="btn btn-ghost btn-sm" data-preview="${r.id}">Preview</button>
@@ -109,15 +134,12 @@ function renderReportsList() {
 
   container.querySelectorAll('[data-preview]').forEach((btn) => {
     btn.addEventListener('click', () => {
-      const r = reports.find((x) => x.id === btn.getAttribute('data-preview'));
+      const r = reports.find((x) => x.id === parseInt(btn.getAttribute('data-preview'), 10));
       if (r) openReportPreview(r);
     });
   });
   container.querySelectorAll('[data-download]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const r = reports.find((x) => x.id === btn.getAttribute('data-download'));
-      if (r) { openReportPreview(r); setTimeout(() => window.print(), 400); }
-    });
+    btn.addEventListener('click', () => downloadReportById(parseInt(btn.getAttribute('data-download'), 10), btn));
   });
 
   setTimeout(renderChart, 0);
@@ -130,15 +152,73 @@ function severityToBadgeClass(severity) {
 }
 
 function openReportPreview(r) {
-  document.getElementById('reportId').textContent = r.id;
+  currentPreviewReportId = r.id;
+  document.getElementById('reportId').textContent = 'RPT-' + r.id;
   document.getElementById('reportDate').textContent = r.date;
   document.getElementById('reportDisease').textContent = r.disease;
   document.getElementById('reportConfidence').textContent = r.confidence + '%';
   document.getElementById('reportSeverity').textContent = r.severity;
   document.getElementById('reportSummary').textContent = r.summary;
   document.getElementById('reportTreatment').textContent = r.treatment;
-  document.getElementById('reportImageWrap').innerHTML = `<img src="assets/farm.png" alt="Analyzed leaf sample">`;
+  document.getElementById('reportImageWrap').innerHTML =
+    `<div class="preview-tile__empty">Loading analyzed image…</div>`;
   openModal('reportModal');
+
+  // Show the exact RGB uploaded for this prediction (not the farm illustration).
+  resolveReportRgbUrl(r)
+    .then((blobUrl) => {
+      if (currentPreviewReportId !== r.id) return;
+      if (blobUrl) {
+        document.getElementById('reportImageWrap').innerHTML =
+          `<img src="${blobUrl}" alt="Analyzed leaf sample">`;
+      } else {
+        document.getElementById('reportImageWrap').innerHTML =
+          `<div class="preview-tile__empty">Sample image unavailable</div>`;
+      }
+    })
+    .catch(() => {
+      if (currentPreviewReportId !== r.id) return;
+      document.getElementById('reportImageWrap').innerHTML =
+        `<div class="preview-tile__empty">Sample image unavailable</div>`;
+    });
+}
+
+async function resolveReportRgbUrl(r) {
+  let rel = r.rgbImageRel;
+  if (!rel && r.predictionId) {
+    const item = await API.getHistoryItem(r.predictionId);
+    rel = item && item.rgb_image_url;
+    if (rel) r.rgbImageRel = rel;
+  }
+  if (!rel) return null;
+  return API.authenticatedImageUrl(rel);
+}
+
+function downloadCurrentPreview() {
+  if (currentPreviewReportId == null) return;
+  downloadReportById(currentPreviewReportId, document.getElementById('downloadPdfBtn'));
+}
+
+function downloadReportById(reportId, btn) {
+  const originalText = btn ? btn.textContent : null;
+  if (btn) { btn.disabled = true; btn.textContent = 'Downloading…'; }
+
+  API.downloadReportBlob(reportId)
+    .then((blob) => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `analysis-report-${reportId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast('Report downloaded', 'success');
+    })
+    .catch((err) => toast('Download failed: ' + err.message, 'error'))
+    .finally(() => {
+      if (btn) { btn.disabled = false; btn.textContent = originalText; }
+    });
 }
 
 function renderChart() {
@@ -177,11 +257,6 @@ function renderChart() {
   });
 }
 
-/**
- * Lightweight CSS-only bar chart used only if the Chart.js CDN
- * couldn't be reached (e.g. no internet connection). Keeps the
- * page fully functional offline.
- */
 function renderChartFallback(canvas, counts) {
   const max = Math.max(1, ...Object.values(counts));
   const wrapper = document.createElement('div');

@@ -1,7 +1,7 @@
 /**
- * Login page — client-side validation + simulated auth.
- * No backend: on "success" we store a demo session flag and
- * redirect to the dashboard.
+ * Login page — client-side validation + REAL backend auth via js/api.js
+ * (POST /api/auth/login, /api/auth/register). On success the JWT is stored
+ * (handled inside API.login/register) and we redirect to the dashboard.
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -9,10 +9,11 @@ document.addEventListener('DOMContentLoaded', () => {
   initFormValidation();
   initForgotPassword();
   initGoogleLogin();
+  initRegisterForm();
 
   document.getElementById('createAccountLink').addEventListener('click', (e) => {
     e.preventDefault();
-    toast('Account creation is disabled in this demo — use any email/password to log in.', 'success');
+    openModal('registerModal');
   });
 });
 
@@ -49,14 +50,71 @@ function initFormValidation() {
     submitBtn.disabled = true;
     submitText.innerHTML = '<span class="spinner"></span> Logging in…';
 
-    setTimeout(() => {
-      Session.login(email.value.trim());
-      toast('Login successful — welcome back!', 'success');
-      setTimeout(() => { window.location.href = 'index.html'; }, 500);
-    }, 900);
+    API.login(email.value.trim(), password.value)
+      .then(() => {
+        toast('Login successful — welcome back!', 'success');
+        setTimeout(() => { window.location.href = 'index.html'; }, 400);
+      })
+      .catch((err) => {
+        toast(err.message || 'Login failed', 'error');
+        submitBtn.disabled = false;
+        submitText.textContent = 'Log In';
+      });
   });
 
   [email, password].forEach((input) => {
+    input.addEventListener('input', () => {
+      input.closest('.field').classList.remove('has-error');
+    });
+  });
+}
+
+function initRegisterForm() {
+  const form = document.getElementById('registerForm');
+  if (!form) return;
+
+  const nameInput = document.getElementById('registerName');
+  const emailInput = document.getElementById('registerEmail');
+  const passwordInput = document.getElementById('registerPassword');
+  const nameField = document.getElementById('registerNameField');
+  const emailField = document.getElementById('registerEmailField');
+  const passwordField = document.getElementById('registerPasswordField');
+  const submitBtn = document.getElementById('registerSubmit');
+  const submitText = document.getElementById('registerSubmitText');
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+
+    const nameValid = nameInput.value.trim().length >= 2;
+    const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailInput.value.trim());
+    const pwd = passwordInput.value;
+    const passwordValid = pwd.length >= 8 && /[A-Za-z]/.test(pwd) && /[0-9]/.test(pwd);
+
+    nameField.classList.toggle('has-error', !nameValid);
+    emailField.classList.toggle('has-error', !emailValid);
+    passwordField.classList.toggle('has-error', !passwordValid);
+
+    if (!nameValid || !emailValid || !passwordValid) return;
+
+    submitBtn.disabled = true;
+    submitText.innerHTML = '<span class="spinner"></span> Creating account…';
+
+    API.register(nameInput.value.trim(), emailInput.value.trim(), pwd)
+      .then(() => {
+        toast('Account created — welcome!', 'success');
+        closeModal('registerModal');
+        setTimeout(() => { window.location.href = 'index.html'; }, 400);
+      })
+      .catch((err) => {
+        toast(err.message || 'Registration failed', 'error');
+      })
+      .finally(() => {
+        submitBtn.disabled = false;
+        submitText.textContent = 'Create account';
+      });
+  });
+
+  [nameInput, emailInput, passwordInput].forEach((input) => {
     input.addEventListener('input', () => {
       input.closest('.field').classList.remove('has-error');
     });
@@ -76,14 +134,12 @@ function initForgotPassword() {
       return;
     }
     closeModal('forgotModal');
-    toast(`Reset link sent to ${resetEmail} (demo)`, 'success');
+    toast(`Reset link sent to ${resetEmail} (demo — password reset isn't implemented on the backend yet)`, 'success');
   });
 }
 
 function initGoogleLogin() {
   document.getElementById('googleLoginBtn').addEventListener('click', () => {
-    toast('Signed in with Google (demo)', 'success');
-    Session.login('demo.user@gmail.com');
-    setTimeout(() => { window.location.href = 'index.html'; }, 700);
+    toast('Google sign-in is not implemented on the backend — please use email/password.', 'error');
   });
 }

@@ -1,0 +1,27 @@
+fastapi==0.115.6
+uvicorn[standard]==0.32.1
+python-multipart==0.0.20
+python-dotenv==1.0.1
+
+SQLAlchemy==2.0.36
+pydantic==2.10.4
+email-validator==2.2.0
+
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+bcrypt==4.2.1
+
+scikit-learn==1.8.0
+joblib==1.4.2
+numpy==1.26.4
+opencv-python-headless==4.10.0.84
+scikit-image==0.24.0
+scipy==1.13.1
+Pillow==10.4.0
+reportlab==4.2.5
+requests>=2.31.0
+
+# NOTE on scikit-learn version: the shipped .joblib artifacts were trained
+# with scikit-learn 1.7.2 (a version-mismatch warning may print on load if
+# your installed version differs). Predictions still work, but if you hit
+# real incompatibilities, install scikit-learn==1.7.2 instead.

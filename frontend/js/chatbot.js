@@ -1,179 +1,36 @@
 /**
- * Agri Assistant — frontend-only chatbot widget.
+ * Agri Assistant — AI/LLM-powered floating chatbot widget.
  *
- * There is no backend/LLM wired up here (by design, per the
- * project's current scope), so this runs as a lightweight,
- * keyword-matched knowledge base focused ONLY on:
- *   1) this project (navigation, features, workflow)
- *   2) farming / agriculture / rice-disease topics
+ * Connects to the FastAPI backend at POST /api/chat via fetch().
+ * Supports questions on:
+ *   - Rice diseases (Healthy, Bacterial Leaf Blight, Brown Spot, Leaf Blast, Leaf Scald, Sheath Blight)
+ *   - Symptoms, treatments, and prevention
+ *   - Rice agriculture, irrigation, soil health, fertilizers, IPM
+ *   - Multispectral imaging (RGB, NIR, Red-Edge) and Image Fusion
+ *   - NDVI vegetation index calculation and stress interpretation
+ *   - Grounded prediction diagnosis results
  *
- * Anything outside that scope gets a polite redirect instead
- * of a made-up answer. Swap `answerQuery()` for a real API call
- * later (see the note near the bottom) to upgrade this to a
- * true LLM-backed assistant without touching the UI code.
+ * UI & Session Features:
+ *   - Optional & dismissible suggestion chips that do not crowd message area
+ *   - Sizing toggle (compact default + expandable enlarged window)
+ *   - Clean in-memory session (no stale localStorage history across page loads)
+ *   - Multi-turn conversation context retention within active session
  */
 
 (function () {
   'use strict';
 
-  /* ---------------------------------------------------------
-     Knowledge base — keyword-scored rule entries.
-     Each entry: keywords[] (lowercase), response (string).
-     The entry with the highest keyword-overlap score wins.
-  --------------------------------------------------------- */
-  const KB = [
-    {
-      keywords: ['hello', 'hi', 'hey', 'namaste', 'greetings'],
-      response: "Hello! I'm Agri Assistant 🌾 Ask me about this platform (image analysis, disease detection, fusion, reports) or general farming topics like irrigation, soil health, fertilizers, or rice diseases."
-    },
-    {
-      keywords: ['thank', 'thanks', 'thank you'],
-      response: "You're welcome! Let me know if you have more questions about the project or your crops."
-    },
-    {
-      keywords: ['disease', 'diseases', 'detect', 'detects', 'detection', 'diagnose', 'diagnosis', 'identify disease', 'classify', 'classification', 'symptom', 'symptoms'],
-      response: "The 'Disease Detection' page classifies an uploaded rice leaf image into one of six categories: Healthy, Bacterial Leaf Blight, Brown Spot, Leaf Blast, Leaf Scald, or Sheath Blight — along with a severity estimate. Ask me about any one of those diseases for more detail."
-    },
-    {
-      keywords: ['multispectral', 'fusion', 'fuse', 'fused', 'ndvi', 'bands', 'spectral', 'infrared', 'nir'],
-      response: "Image fusion combines multiple spectral bands (like visible RGB and near-infrared) into one enhanced image. NDVI-style fusion highlights vegetation stress that isn't visible to the naked eye, so subtle disease or water-stress symptoms show up earlier. You can try this on the 'Image Fusion' page."
-    },
-    {
-      keywords: ['image analysis', 'analyze', 'analyse', 'upload image', 'scan leaf', 'scan my'],
-      response: "Head to the 'Image Analysis' page to upload a crop image — the platform analyzes it and surfaces health indicators such as vegetation index and possible disease signs."
-    },
-    {
-      keywords: ['dataset', 'training data', 'explorer', 'images used'],
-      response: "The 'Dataset Explorer' page lets you browse the labeled training images used for disease classification — healthy leaves plus five disease categories."
-    },
-    {
-      keywords: ['what is this project', 'what is this platform', 'what is this app', 'what is this website', 'what is this system', 'what does this do', 'tell me about this project', 'about this project', 'multispectral image fusion for agriculture', 'purpose of this'],
-      response: "This is the Multispectral Image Fusion For Agriculture platform — a digital-twin style dashboard that fuses RGB and multispectral (e.g. NIR/NDVI) drone or field imagery to help monitor rice crop health and detect leaf diseases early."
-    },
-    {
-      keywords: ['report', 'reports', 'download report', 'summary report'],
-      response: "The 'Reports' page compiles your analysis results into a shareable summary, including severity, diagnosis notes, and suggested treatment."
-    },
-    {
-      keywords: ['history', 'past scans', 'previous', 'record'],
-      response: "The 'History' page keeps a log of your previous scans and analyses so you can track a field's health over time."
-    },
-    {
-      keywords: ['login', 'log in', 'sign in', 'signin'],
-      response: "Use the login page with any email/password (this is a demo — no real backend auth). There's also a 'Sign in with Google' demo button."
-    },
-    {
-      keywords: ['logout', 'log out', 'sign out'],
-      response: "You can log out anytime from the profile icon (top-right of the navbar) → 'Log out'."
-    },
-    {
-      keywords: ['bacterial leaf blight', 'bacterial blight', 'blb'],
-      response: "Bacterial Leaf Blight: water-soaked lesions along leaf margins; usually severe. Suggested treatment — apply a copper-based bactericide, improve field drainage, and remove badly infected leaves."
-    },
-    {
-      keywords: ['brown spot'],
-      response: "Brown Spot: small circular-to-oval brown lesions with a gray/white center scattered across the blade; typically moderate severity. Suggested treatment — apply a mancozeb-based fungicide and ensure balanced potassium nutrition."
-    },
-    {
-      keywords: ['leaf blast', 'blast disease'],
-      response: "Leaf Blast: diamond-shaped lesions with defined margins; often severe and spreads quickly. Suggested treatment — apply a tricyclazole-based fungicide promptly and reduce nitrogen application."
-    },
-    {
-      keywords: ['leaf scald'],
-      response: "Leaf Scald: alternating tan and brown banding from the leaf tip inward; usually moderate. Suggested treatment — improve field ventilation, monitor spread, and apply fungicide if it progresses."
-    },
-    {
-      keywords: ['sheath blight'],
-      response: "Sheath Blight: greenish-gray oval lesions on the leaf sheath near the waterline with irregular borders; moderate severity. Suggested treatment — apply a hexaconazole fungicide and reduce planting density to lower canopy humidity."
-    },
-    {
-      keywords: ['healthy leaf', 'healthy rice', 'no disease'],
-      response: "A healthy rice leaf shows uniform chlorophyll distribution with no lesion patterns in both RGB and fused NDVI bands — no treatment needed, just continue routine monitoring."
-    },
-    {
-      keywords: ['irrigation', 'watering', 'water crop', 'drip irrigation', 'water', 'water my', 'water the'],
-      response: "For rice, maintaining 2–5 cm of standing water during vegetative growth supports healthy tillering; alternate wetting-and-drying (AWD) can save water while keeping yields stable. Avoid waterlogging near harvest to reduce disease pressure like sheath blight."
-    },
-    {
-      keywords: ['soil health', 'soil quality', 'soil test', 'ph'],
-      response: "Good soil health for rice comes from balanced NPK, adequate organic matter, and a slightly acidic-to-neutral pH (around 5.5–6.5). Periodic soil testing helps you avoid over-fertilizing, which can actually increase disease susceptibility."
-    },
-    {
-      keywords: ['fertilizer', 'fertilizers', 'nitrogen', 'npk', 'nutrient'],
-      response: "Balanced fertilization matters: excess nitrogen makes rice leaves more susceptible to blast and blight, while adequate potassium improves resistance to brown spot. Split nitrogen doses across growth stages rather than applying it all at once."
-    },
-    {
-      keywords: ['pest', 'pests', 'insect', 'pest control'],
-      response: "Integrated Pest Management (IPM) — combining resistant varieties, field monitoring, natural predators, and targeted pesticide use only when thresholds are crossed — is generally more sustainable than routine spraying."
-    },
-    {
-      keywords: ['crop rotation', 'rotation'],
-      response: "Rotating rice with a non-host crop (like legumes) for a season can break disease and pest cycles and improve soil nitrogen naturally."
-    },
-    {
-      keywords: ['weather', 'climate', 'season', 'monsoon'],
-      response: "Humid, warm conditions with prolonged leaf wetness (common in monsoon season) favor fungal diseases like blast and brown spot, while bacterial blight often spreads faster after wind-driven rain. Good drainage and spacing help reduce risk."
-    },
-    {
-      keywords: ['drone', 'drones', 'multispectral camera', 'sensor'],
-      response: "Multispectral drones typically capture bands beyond visible light (like red-edge and near-infrared) to compute vegetation indices such as NDVI, which reveal crop stress before it's visible to the eye — this is the kind of imagery this platform is built to fuse and analyze."
-    },
-    {
-      keywords: ['rice', 'paddy'],
-      response: "This platform is focused on rice/paddy crop monitoring — from multispectral image fusion to automated leaf disease detection across six categories. Ask me about a specific disease, or how to use a page like Image Analysis or Reports."
-    }
-  ];
-
-  const FALLBACK =
-    "I can only help with questions about this platform (image analysis, disease detection, fusion, reports, dataset) or general farming/agriculture topics. Could you rephrase your question around one of those?";
-
   const SUGGESTIONS = [
     'What diseases can this detect?',
-    'How does image fusion work?',
-    'Tips for healthy soil',
-    'How do I log out?'
+    'How does multispectral fusion work?',
+    'What is NDVI and how is it calculated?',
+    'Symptoms & treatment for Leaf Blast',
+    'How to prevent Bacterial Leaf Blight?',
+    'What is my latest prediction result?'
   ];
 
-  /* ---------------------------------------------------------
-     Matching — simple keyword overlap scoring.
-  --------------------------------------------------------- */
-  function escapeRegExp(s) {
-    return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  }
-
-  function answerQuery(rawText) {
-    const text = rawText.toLowerCase().trim();
-    if (!text) return FALLBACK;
-
-    let best = null;
-    let bestScore = 0;
-
-    KB.forEach((entry) => {
-      let score = 0;
-      entry.keywords.forEach((kw) => {
-        // Word-boundary match so short keywords (e.g. "hi") don't
-        // false-positive inside unrelated words (e.g. "this", "history").
-        const pattern = new RegExp('\\b' + escapeRegExp(kw) + '\\b', 'i');
-        if (pattern.test(text)) score += kw.split(' ').length; // reward multi-word matches
-      });
-      if (score > bestScore) {
-        bestScore = score;
-        best = entry;
-      }
-    });
-
-    if (best && bestScore > 0) return best.response;
-    return FALLBACK;
-
-    /* ---------------------------------------------------------
-       To upgrade this to a real AI-backed assistant later:
-       replace this function's body with a fetch() call to your
-       own backend endpoint (which in turn calls an LLM API),
-       since API keys must never live in frontend code. The rest
-       of the widget (UI, history, typing indicator) needs no
-       changes.
-    --------------------------------------------------------- */
-  }
+  // Clean in-memory session history (never persisted to localStorage/sessionStorage)
+  const chatHistory = [];
 
   /* ---------------------------------------------------------
      Markup + styles injection
@@ -188,8 +45,7 @@
   }
 
   // Resolve css/js paths correctly whether the current page lives
-  // at the frontend root (e.g. index.html) or one level deep
-  // (e.g. assets/about.html).
+  // at the frontend root (e.g. index.html) or one level deep.
   function resolveAssetPath(path) {
     const script = document.currentScript || document.querySelector('script[src*="chatbot.js"]');
     if (script) {
@@ -197,6 +53,31 @@
       return base + path;
     }
     return path;
+  }
+
+  function getApiBaseUrl() {
+    return window.API_BASE_URL || (window.API && window.API.base) || 'http://localhost:8000';
+  }
+
+  function getAuthToken() {
+    if (window.API && typeof window.API.getToken === 'function') {
+      return window.API.getToken();
+    }
+    return localStorage.getItem('mif_auth_token');
+  }
+
+  function getCurrentContext() {
+    const context = {
+      page: document.title || window.location.pathname,
+    };
+
+    // Check for prediction data in window or local variables
+    const activePrediction = window.lastDdPrediction || window.lastPrediction;
+    if (activePrediction) {
+      context.prediction = activePrediction;
+    }
+
+    return context;
   }
 
   function buildWidget() {
@@ -227,28 +108,46 @@
           </span>
           <span class="chatbot-panel__title">
             <strong>Agri Assistant</strong>
-            <span><span class="chatbot-panel__status-dot"></span>Farming &amp; project help</span>
+            <span><span class="chatbot-panel__status-dot"></span>AI Rice &amp; Crop Advisor</span>
           </span>
-          <button class="chatbot-panel__close" id="chatbotClose" type="button" aria-label="Close chat">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M6 6L18 18M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            </svg>
-          </button>
+          <div class="chatbot-panel__actions">
+            <button class="chatbot-panel__expand" id="chatbotExpand" type="button" aria-label="Expand chat size" title="Toggle full size">
+              <svg class="chatbot-expand-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M15 3H21V9M9 21H3V15M21 3L14 10M3 21L10 14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <svg class="chatbot-collapse-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M4 14H10V20M20 10H14V4M14 10L21 3M10 14L3 21" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+            <button class="chatbot-panel__close" id="chatbotClose" type="button" aria-label="Close chat" title="Close chat">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M6 6L18 18M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </button>
+          </div>
         </div>
 
         <div class="chatbot-panel__messages" id="chatbotMessages"></div>
 
+        <div class="chatbot-panel__suggestions-bar" id="chatbotSuggestionsBar">
+          <span class="chatbot-panel__suggestions-title">Suggested questions</span>
+          <button class="chatbot-suggestions__dismiss" id="chatbotDismissSuggestions" type="button" aria-label="Dismiss suggestions" title="Dismiss suggestions">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
         <div class="chatbot-panel__suggestions" id="chatbotSuggestions"></div>
 
         <div class="chatbot-panel__input-row">
-          <input type="text" id="chatbotInput" placeholder="Ask about farming or this project…" autocomplete="off">
-          <button class="chatbot-panel__send" id="chatbotSend" type="button" aria-label="Send message">
+          <input type="text" id="chatbotInput" placeholder="Ask about rice diseases, NDVI, fusion, or diagnosis…" autocomplete="off">
+          <button class="chatbot-panel__send" id="chatbotSend" type="button" aria-label="Send message" title="Send message">
             <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M4 20L21 12L4 4L4 10L15 12L4 14L4 20Z" fill="currentColor"/>
             </svg>
           </button>
         </div>
-        <div class="chatbot-panel__footnote">Answers are limited to farming &amp; this project — demo assistant, not real-time AI.</div>
+        <div class="chatbot-panel__footnote">AI-powered assistant for rice crop health, multispectral imaging &amp; disease diagnosis.</div>
       </div>
     `;
     document.body.appendChild(wrap);
@@ -264,8 +163,11 @@
     const launcher = document.getElementById('chatbotLauncher');
     const panel = document.getElementById('chatbotPanel');
     const closeBtn = document.getElementById('chatbotClose');
+    const expandBtn = document.getElementById('chatbotExpand');
     const messages = document.getElementById('chatbotMessages');
+    const suggestionsBar = document.getElementById('chatbotSuggestionsBar');
     const suggestionsWrap = document.getElementById('chatbotSuggestions');
+    const dismissSuggestionsBtn = document.getElementById('chatbotDismissSuggestions');
     const input = document.getElementById('chatbotInput');
     const sendBtn = document.getElementById('chatbotSend');
     const badge = document.getElementById('chatbotBadge');
@@ -273,14 +175,43 @@
     let greeted = false;
 
     function renderSuggestions() {
+      if (!suggestionsWrap) return;
       suggestionsWrap.innerHTML = '';
       SUGGESTIONS.forEach((s) => {
         const chip = document.createElement('button');
         chip.type = 'button';
         chip.className = 'chatbot-chip';
         chip.textContent = s;
-        chip.addEventListener('click', () => sendMessage(s));
+        chip.addEventListener('click', () => {
+          hideSuggestions();
+          sendMessage(s);
+        });
         suggestionsWrap.appendChild(chip);
+      });
+      if (suggestionsBar) suggestionsBar.style.display = 'flex';
+      suggestionsWrap.style.display = 'flex';
+    }
+
+    function hideSuggestions() {
+      if (suggestionsBar) suggestionsBar.style.display = 'none';
+      if (suggestionsWrap) suggestionsWrap.style.display = 'none';
+    }
+
+    if (dismissSuggestionsBtn) {
+      dismissSuggestionsBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        hideSuggestions();
+      });
+    }
+
+    if (expandBtn) {
+      expandBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        panel.classList.toggle('is-expanded');
+        const isExp = panel.classList.contains('is-expanded');
+        expandBtn.setAttribute('aria-label', isExp ? 'Collapse chat size' : 'Expand chat size');
+        expandBtn.setAttribute('title', isExp ? 'Collapse chat' : 'Expand chat');
+        if (input) input.focus();
       });
     }
 
@@ -290,6 +221,7 @@
       el.textContent = text;
       messages.appendChild(el);
       messages.scrollTop = messages.scrollHeight;
+      return el;
     }
 
     function showTyping() {
@@ -306,21 +238,77 @@
       if (el) el.remove();
     }
 
-    function sendMessage(text) {
+    async function sendMessage(text) {
       const value = (text !== undefined ? text : input.value).trim();
+      // Handle empty messages gracefully
       if (!value) return;
 
+      // Hide suggestion chips once user sends a message
+      hideSuggestions();
+
       addMessage(value, 'user');
+      chatHistory.push({ role: 'user', content: value });
+
       input.value = '';
       sendBtn.disabled = true;
+      input.disabled = true;
 
       showTyping();
-      setTimeout(() => {
+
+      const apiBase = getApiBaseUrl();
+      const token = getAuthToken();
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const payload = {
+        message: value,
+        history: chatHistory.slice(0, -1), // prior history turns in current session
+        context: getCurrentContext(),
+      };
+
+      try {
+        const res = await fetch(`${apiBase}/api/chat`, {
+          method: 'POST',
+          headers: headers,
+          body: JSON.stringify(payload),
+        });
+
+        let data = null;
+        const rawText = await res.text();
+        if (rawText) {
+          try {
+            data = JSON.parse(rawText);
+          } catch (e) {
+            data = { reply: rawText };
+          }
+        }
+
         hideTyping();
-        addMessage(answerQuery(value), 'bot');
+
+        if (!res.ok) {
+          const detail =
+            (data && (data.detail || data.message)) ||
+            (Array.isArray(data) ? data.map((d) => d.msg).join(', ') : null) ||
+            `Request failed (${res.status})`;
+          throw new Error(typeof detail === 'string' ? detail : JSON.stringify(detail));
+        }
+
+        const reply = (data && data.reply) ? data.reply : "I received an empty response from the AI assistant.";
+        addMessage(reply, 'bot');
+        chatHistory.push({ role: 'assistant', content: reply });
+
+      } catch (err) {
+        hideTyping();
+        console.error('Chatbot request error:', err);
+        const errorMsg = `🌾 Sorry, I couldn't reach the backend service: ${err.message || 'Network error'}. Please ensure the backend is running at ${apiBase} and an LLM API key is configured.`;
+        addMessage(errorMsg, 'bot');
+      } finally {
         sendBtn.disabled = false;
+        input.disabled = false;
         input.focus();
-      }, 500 + Math.random() * 400);
+      }
     }
 
     function openPanel() {
@@ -333,7 +321,7 @@
         greeted = true;
         renderSuggestions();
         setTimeout(() => {
-          addMessage("Hi! I'm Agri Assistant 🌾 Ask me about the platform's features (image fusion, disease detection, reports) or general rice-farming topics. Tap a suggestion below or type your own question.", 'bot');
+          addMessage("Hi! I'm Agri Assistant 🌾 Ask me about rice diseases, symptoms, treatments, prevention, multispectral imaging, NDVI, or your leaf diagnosis results. Tap a suggestion below or type your own question.", 'bot');
         }, 200);
       }
       setTimeout(() => input && input.focus(), 250);

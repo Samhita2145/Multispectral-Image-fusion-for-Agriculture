@@ -1,0 +1,12 @@
+{
+  "final_model": "GradientBoostingClassifier",
+  "feature_set": "RGB + HSV color stats, NIR stats, NDVI stats, GLCM texture (RGB & NIR)",
+  "n_features": 32,
+  "train_size": 2680,
+  "val_size": 574,
+  "test_size": 575,
+  "test_accuracy": 0.8573913043478261,
+  "cv_mean_accuracy": 0.8263646461065817,
+  "cv_std_accuracy": 0.013947632865116433,
+  "rgb_only_test_accuracy": 0.831304347826087
+}

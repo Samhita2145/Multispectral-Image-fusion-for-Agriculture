@@ -9,13 +9,33 @@
  *   - mock auth guard (redirects to login.html if not "logged in")
  */
 
+// Pages that require a logged-in user. Any page NOT in this list (e.g.
+// login.html, about.html, dataset.html) stays public.
+const AUTH_REQUIRED_PAGES = [
+  'index.html', '', 'image-analysis.html', 'disease-detection.html',
+  'fusion.html', 'history.html', 'reports.html'
+];
+
 document.addEventListener('DOMContentLoaded', () => {
+  enforceAuthGuard();
   initPrimaryNav();
   initTopBarControls();
   initModalDismiss();
   initCounters();
   initProfileMenu();
 });
+
+/* ---------------------------------------------------------
+   Auth guard — redirect to login.html if this page needs a
+   logged-in user and the backend JWT session is missing.
+--------------------------------------------------------- */
+function enforceAuthGuard() {
+  const current = window.location.pathname.split('/').pop();
+  if (!AUTH_REQUIRED_PAGES.includes(current)) return;
+  if (window.API && !window.API.isLoggedIn()) {
+    window.location.href = 'login.html';
+  }
+}
 
 /* ---------------------------------------------------------
    Nav: highlight the link matching the current page
@@ -65,25 +85,27 @@ function initProfileMenu() {
   const profileBtn = document.querySelector('.profile-btn');
   if (!menu || !profileBtn) return;
 
-  // Populate with the current demo session's email, if any.
+  // Populate with the current logged-in user's name/email, if any.
   const emailEl = menu.querySelector('.profile-dropdown__user span');
   const nameEl = menu.querySelector('.profile-dropdown__user strong');
-  if (window.Session && Session.isLoggedIn()) {
-    const email = Session.email();
+  if (window.API && API.isLoggedIn()) {
+    const user = API.getUser();
+    const email = (user && user.email) || 'demo.user@agri.edu';
     if (emailEl) emailEl.textContent = email;
-    if (nameEl) nameEl.textContent = email.split('@')[0]
+    if (nameEl) nameEl.textContent = (user && user.name) || email.split('@')[0]
       .replace(/[._]/g, ' ')
       .replace(/\b\w/g, (c) => c.toUpperCase());
   }
 
-  // Wire the "Log out" link to actually clear the session.
+  // Wire the "Log out" link to actually clear the session via the backend.
   const logoutLink = menu.querySelector('.profile-dropdown__link--danger');
   if (logoutLink) {
     logoutLink.addEventListener('click', (e) => {
       e.preventDefault();
-      if (window.Session) Session.logout();
-      toast('Logged out successfully', 'success');
-      setTimeout(() => { window.location.href = logoutLink.getAttribute('href') || 'login.html'; }, 400);
+      Promise.resolve(window.API ? API.logout() : null).finally(() => {
+        toast('Logged out successfully', 'success');
+        setTimeout(() => { window.location.href = logoutLink.getAttribute('href') || 'login.html'; }, 400);
+      });
     });
   }
 
@@ -193,24 +215,8 @@ function initCounters() {
 }
 
 /* ---------------------------------------------------------
-   Shared dummy "session" — lets Login / Logout feel connected
-   across pages without a backend. Uses in-memory + a simple
-   flag on window.name so it can (optionally) survive a
-   same-tab navigation during a demo walkthrough.
+   NOTE: session/auth state now lives in js/api.js (window.API),
+   backed by a real JWT from the FastAPI backend instead of a
+   sessionStorage demo flag. window.Session has been removed;
+   use window.API.isLoggedIn() / API.getUser() / API.logout().
 --------------------------------------------------------- */
-const Session = {
-  isLoggedIn() {
-    return sessionStorage.getItem('mif_demo_session') === 'active';
-  },
-  login(email) {
-    sessionStorage.setItem('mif_demo_session', 'active');
-    sessionStorage.setItem('mif_demo_email', email || 'demo.user@agri.edu');
-  },
-  logout() {
-    sessionStorage.removeItem('mif_demo_session');
-  },
-  email() {
-    return sessionStorage.getItem('mif_demo_email') || 'demo.user@agri.edu';
-  }
-};
-window.Session = Session;
