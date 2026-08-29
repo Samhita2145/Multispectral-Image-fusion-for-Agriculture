@@ -53,7 +53,6 @@ const DETECTION_DATA = [
 ];
 
 let ddRgbFile = null;
-let ddNirFile = null;
 let lastDdPrediction = null;
 
 function findDetectionEntry(className) {
@@ -68,7 +67,6 @@ function findDetectionEntry(className) {
 
 document.addEventListener('DOMContentLoaded', () => {
   initDDDropzone();
-  initNirUpload();
   initAccordion();
   document.getElementById('ddDownloadReportBtn').addEventListener('click', downloadDdReport);
 });
@@ -82,22 +80,6 @@ function initDDDropzone() {
   ['dragleave', 'drop'].forEach((evt) => dropzone.addEventListener(evt, (e) => { e.preventDefault(); dropzone.classList.remove('is-dragover'); }));
   dropzone.addEventListener('drop', (e) => { const f = e.dataTransfer.files[0]; if (f) handleDDFile(f); });
   fileInput.addEventListener('change', (e) => { const f = e.target.files[0]; if (f) handleDDFile(f); });
-}
-
-function initNirUpload() {
-  const btn = document.getElementById('ddNirBtn');
-  const input = document.getElementById('ddNirFileInput');
-  btn.addEventListener('click', () => input.click());
-  input.addEventListener('change', (e) => {
-    const f = e.target.files[0];
-    if (!f) return;
-    if (!f.type.startsWith('image/')) { toast('Please upload a valid image file for Pseudo-NIR', 'error'); return; }
-    ddNirFile = f;
-    const status = document.getElementById('ddNirStatus');
-    status.style.display = 'block';
-    status.textContent = `Pseudo-NIR attached: ${f.name} — fusion model + NDVI will be used on next diagnosis.`;
-    if (ddRgbFile) runDiagnosis();
-  });
 }
 
 function handleDDFile(file) {
@@ -129,7 +111,7 @@ function runDiagnosis() {
     return;
   }
 
-  API.predict(ddRgbFile, ddNirFile)
+  API.predict(ddRgbFile)
     .then((result) => {
       lastDdPrediction = result;
       window.lastDdPrediction = result;
@@ -205,8 +187,19 @@ function runDiagnosis() {
     })
     .catch((err) => {
       console.error(err);
-      toast('Diagnosis failed: ' + err.message, 'error');
       document.getElementById('ddLoading').style.display = 'none';
+
+      // Backend returns 422 specifically when the rice-leaf validation gate
+      // (services/leaf_validator.py) rejects the image as not looking like
+      // a rice leaf -- show the dedicated "not a leaf" state instead of a
+      // generic error toast, and never fall through to a disease result.
+      if (err.status === 422) {
+        document.getElementById('ddNotLeaf').style.display = 'block';
+        toast(err.message || 'This doesn\'t look like a rice leaf photo.', 'error');
+        return;
+      }
+
+      toast('Diagnosis failed: ' + err.message, 'error');
       document.getElementById('ddEmpty').style.display = 'block';
     });
 }

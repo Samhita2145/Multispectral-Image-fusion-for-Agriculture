@@ -298,7 +298,27 @@ Answer helpfully.
 If NO:
 Politely refuse and redirect the user to agriculture/project-related topics.
 
-Never answer unrelated questions simply because you know the answer."""
+Never answer unrelated questions simply because you know the answer.
+
+==================================================
+11. RESPONSE LENGTH REQUIREMENT
+==================================================
+
+Keep every reply to about 150 words maximum (a short, focused answer, not a hard
+cutoff mid-sentence).
+
+- Lead with the most useful, directly relevant information first.
+- Cut filler, throat-clearing, repetition, and restating the question.
+- Prefer short paragraphs, tight bullet points, or a brief numbered list over
+  long prose.
+- Do not drop or soften factual content, disease names, symptoms, treatments,
+  prevention steps, or safety caveats (e.g. "confirm with a local agronomist")
+  to hit the word count -- trim wording, not substance. If a question genuinely
+  needs more than ~150 words to answer accurately and safely, briefly say so
+  and offer to go deeper, rather than omitting important facts.
+- This length rule applies to normal conversational replies. It does not apply
+  to the "Agri Assistant Setup Required" configuration message, which should
+  stay as-is."""
 
 
 def _is_valid_key(key: Optional[str]) -> bool:

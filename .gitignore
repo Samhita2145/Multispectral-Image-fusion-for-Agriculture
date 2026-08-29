@@ -1,43 +1,30 @@
-# Python
-__pycache__/
-*.py[cod]
-.ipynb_checkpoints/
+# Python virtual environments
+.venv/
 venv/
 env/
-.venv/
-*.egg-info/
 
-# Environment / secrets
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Environment variables / secrets
 .env
-backend/.env
+.env.*
+!.env.example
 
 # Databases
 *.db
-database/
-backend/database/
+*.sqlite
+*.sqlite3
 
-# Runtime/user-generated files
-uploads/
-backend/uploads/
-generated_reports/
+# Generated reports and uploaded files
 backend/generated_reports/
+backend/uploads/
 
-# OS/editor
-.DS_Store
-Thumbs.db
-*.swp
+# Python tooling
+.pytest_cache/
+.mypy_cache/
 
-# Training generated files
-training_testing/X_features.npy
-training_testing/y_labels.npy
-training_testing/Preprocessed/
-
-# Local root artifacts
-/venv/
-/__pycache__/
-/uploads/
-/generated_reports/
-/database/
-
-# Keep required ML model artifacts
-# Do NOT ignore backend/ml_artifacts/
+# VS Code local settings
+.vscode/

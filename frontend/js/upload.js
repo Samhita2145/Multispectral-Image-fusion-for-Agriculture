@@ -276,11 +276,22 @@ function runAnalysis() {
     })
     .catch((err) => {
       console.error(err);
-      toast('Analysis failed: ' + err.message, 'error');
       document.getElementById('predictionLoading').style.display = 'none';
-      document.getElementById('predictionEmpty').style.display = 'block';
       btn.disabled = false;
       btnText.textContent = 'Analyse Image';
+
+      // Backend returns 422 specifically when the rice-leaf validation gate
+      // (services/leaf_validator.py) rejects the image as not looking like
+      // a rice leaf -- show the dedicated "not a leaf" state instead of a
+      // generic error toast, and never fall through to a disease result.
+      if (err.status === 422) {
+        document.getElementById('predictionNotLeaf').style.display = 'block';
+        toast(err.message || 'This doesn\'t look like a rice leaf photo.', 'error');
+        return;
+      }
+
+      toast('Analysis failed: ' + err.message, 'error');
+      document.getElementById('predictionEmpty').style.display = 'block';
     });
 }
 

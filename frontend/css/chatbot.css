@@ -198,6 +198,34 @@
   border-bottom-right-radius: 4px;
 }
 
+.chatbot-msg--bot .chatbot-md-line,
+.chatbot-msg--bot .chatbot-md-heading {
+  margin: 2px 0;
+}
+
+.chatbot-msg--bot .chatbot-md-line:first-child,
+.chatbot-msg--bot .chatbot-md-heading:first-child {
+  margin-top: 0;
+}
+
+.chatbot-msg--bot ul,
+.chatbot-msg--bot ol {
+  margin: 4px 0;
+  padding-left: 18px;
+}
+
+.chatbot-msg--bot li {
+  margin: 2px 0;
+}
+
+.chatbot-msg--bot code {
+  background-color: rgba(0, 0, 0, 0.06);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 12.5px;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+}
+
 .chatbot-msg--typing {
   display: flex;
   align-items: center;

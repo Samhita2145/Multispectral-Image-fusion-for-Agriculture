@@ -12,6 +12,7 @@ from schemas import NDVIResponse, PredictionResponse
 from security import get_current_user
 from services import ml_service
 from services.feature_service import bytes_to_gray, bytes_to_rgb
+from services.leaf_validator import NOT_A_RICE_LEAF_MESSAGE, is_probably_rice_leaf
 from services.ndvi_service import (
     ndvi_heatmap_png_bytes,
     ndvi_stats,
@@ -52,6 +53,21 @@ async def predict(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),
+        )
+
+    # --- Rice-leaf validation gate ---
+    # Runs BEFORE disease classification. The classifier below only knows
+    # its six trained rice-leaf classes and has no "not a rice leaf" output,
+    # so without this check an unrelated photo would still get a confident
+    # (but meaningless) disease prediction. This does not change the
+    # classification model, labels, or prediction logic for valid images --
+    # it only decides whether to call them at all. See services/
+    # leaf_validator.py for how the check works and its calibration.
+    is_valid_leaf, _leaf_diagnostics = is_probably_rice_leaf(rgb)
+    if not is_valid_leaf:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=NOT_A_RICE_LEAF_MESSAGE,
         )
 
     nir = None

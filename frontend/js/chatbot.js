@@ -66,6 +66,86 @@
     return localStorage.getItem('mif_auth_token');
   }
 
+  /* ---------------------------------------------------------
+     Minimal, safe Markdown renderer for bot replies.
+     Escapes HTML first (so the LLM reply can never inject markup),
+     then converts a small, well-defined subset of Markdown to HTML:
+     bold (** **), italic (single * or _), inline code (backticks),
+     bullet lists (- or *), numbered lists (1.), #/##/### headings,
+     and paragraph breaks.
+  --------------------------------------------------------- */
+  function escapeHtml(str) {
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function renderInlineMarkdown(text) {
+    let out = escapeHtml(text);
+    // Inline code first, so ** or _ inside `code` isn't touched.
+    out = out.replace(/`([^`]+)`/g, '<code>$1</code>');
+    // Bold: **text** or __text__
+    out = out.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    out = out.replace(/__([^_]+)__/g, '<strong>$1</strong>');
+    // Italic: *text* or _text_ (single markers, left after bold is consumed)
+    out = out.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+    out = out.replace(/(^|\W)_([^_]+)_(\W|$)/g, '$1<em>$2</em>$3');
+    return out;
+  }
+
+  function renderMarkdown(text) {
+    const lines = (text || '').replace(/\r\n/g, '\n').split('\n');
+    let html = '';
+    let listType = null; // 'ul' | 'ol' | null
+
+    function closeList() {
+      if (listType) {
+        html += listType === 'ul' ? '</ul>' : '</ol>';
+        listType = null;
+      }
+    }
+
+    lines.forEach((rawLine) => {
+      const line = rawLine.trim();
+
+      if (!line) {
+        closeList();
+        return;
+      }
+
+      const headingMatch = line.match(/^(#{1,6})\s+(.*)$/);
+      if (headingMatch) {
+        closeList();
+        const level = Math.min(headingMatch[1].length + 2, 6); // keep small in a chat bubble
+        html += `<div class="chatbot-md-heading" style="font-weight:700; margin:${level === 3 ? '2px 0' : '4px 0 2px'};">${renderInlineMarkdown(headingMatch[2])}</div>`;
+        return;
+      }
+
+      const bulletMatch = line.match(/^[-*]\s+(.*)$/);
+      if (bulletMatch) {
+        if (listType !== 'ul') { closeList(); html += '<ul style="margin:4px 0; padding-left:18px;">'; listType = 'ul'; }
+        html += `<li>${renderInlineMarkdown(bulletMatch[1])}</li>`;
+        return;
+      }
+
+      const numberedMatch = line.match(/^\d+[.)]\s+(.*)$/);
+      if (numberedMatch) {
+        if (listType !== 'ol') { closeList(); html += '<ol style="margin:4px 0; padding-left:18px;">'; listType = 'ol'; }
+        html += `<li>${renderInlineMarkdown(numberedMatch[1])}</li>`;
+        return;
+      }
+
+      closeList();
+      html += `<div class="chatbot-md-line">${renderInlineMarkdown(line)}</div>`;
+    });
+
+    closeList();
+    return html;
+  }
+
   function getCurrentContext() {
     const context = {
       page: document.title || window.location.pathname,
@@ -218,7 +298,17 @@
     function addMessage(text, sender) {
       const el = document.createElement('div');
       el.className = `chatbot-msg chatbot-msg--${sender}`;
-      el.textContent = text;
+      if (sender === 'bot') {
+        // Bot replies may contain Markdown (from the LLM/system prompt);
+        // render it as formatted HTML. renderMarkdown() escapes all raw
+        // text before re-inserting the small set of tags it generates,
+        // so this stays safe even though we use innerHTML here.
+        el.innerHTML = renderMarkdown(text);
+      } else {
+        // User input is shown as-is (no markdown interpretation needed,
+        // and textContent keeps it inherently XSS-safe).
+        el.textContent = text;
+      }
       messages.appendChild(el);
       messages.scrollTop = messages.scrollHeight;
       return el;
