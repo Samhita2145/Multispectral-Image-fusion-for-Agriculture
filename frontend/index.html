@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Multispectral Image Fusion For Agriculture</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/modules.css">
+  <link rel="stylesheet" href="css/animations.css">
+  <link rel="stylesheet" href="css/responsive.css">
+  <link rel="stylesheet" href="css/chatbot.css">
+</head>
+<body>
+
+  <!-- Soft ambient background gradients -->
+  <div class="bg-glow bg-glow--top-left" aria-hidden="true"></div>
+  <div class="bg-glow bg-glow--bottom-right" aria-hidden="true"></div>
+
+  <div class="page">
+
+    <!-- ================= NAVBAR ================= -->
+    <header class="navbar" role="banner">
+      <div class="navbar__brand">
+        <img src="assets/logo.png" alt="Multispectral Image Fusion logo" class="navbar__logo">
+        <div class="navbar__title">
+          <span>Multispectral Image Fusion</span>
+          <span>For Agriculture</span>
+        </div>
+      </div>
+
+      <nav class="navbar__nav" role="navigation" aria-label="Primary">
+        <a href="index.html" class="nav-link nav-link--active" aria-current="page">Dashboard</a>
+        <a href="image-analysis.html" class="nav-link">Image Analysis</a>
+        <a href="dataset.html" class="nav-link">Dataset Explorer</a>
+        <a href="disease-detection.html" class="nav-link">Disease Detection</a>
+        <a href="fusion.html" class="nav-link">Image Fusion</a>
+        <a href="reports.html" class="nav-link">Reports</a>
+        <a href="history.html" class="nav-link">History</a>
+        <a href="about.html" class="nav-link">About</a>
+      </nav>
+
+      <div class="navbar__actions">
+        <button class="icon-btn" aria-label="Notifications" type="button">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 3C9.79 3 8 4.79 8 7V10.5C8 11.03 7.79 11.54 7.41 11.91L6 13.32C5.11 14.21 5.74 15.75 7 15.75H17C18.26 15.75 18.89 14.21 18 13.32L16.59 11.91C16.21 11.54 16 11.03 16 10.5V7C16 4.79 14.21 3 12 3Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M9.5 18.5C9.5 19.88 10.62 21 12 21C13.38 21 14.5 19.88 14.5 18.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+
+        <div class="profile-menu-wrap">
+          <button class="profile-btn" type="button" aria-label="Account menu">
+            <span class="profile-icon">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="12" cy="8.5" r="3.2" stroke="currentColor" stroke-width="1.6"/>
+                <path d="M4.5 20C5.9 16.7 8.7 15 12 15C15.3 15 18.1 16.7 19.5 20" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+              </svg>
+            </span>
+            <svg class="chevron" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <div class="profile-dropdown" id="profileMenu">
+            <div class="profile-dropdown__user">
+              <strong>Demo User</strong>
+              <span>demo.user@agri.edu</span>
+            </div>
+            <a href="about.html" class="profile-dropdown__link">About this project</a>
+            <a href="login.html" class="profile-dropdown__link profile-dropdown__link--danger">Log out</a>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- ================= MAIN ================= -->
+    <main class="hero">
+
+      <div class="hero__copy">
+        <span class="badge">
+          <span class="badge__dot"></span>
+          LIVE &bull; DIGITAL TWIN
+        </span>
+
+        <h1 class="hero__heading">
+          <span class="hero__heading-line">Rice Farm</span>
+          <span class="hero__heading-line hero__heading-line--accent">Workspace</span>
+        </h1>
+
+        <p class="hero__paragraph">
+          Real-time multispectral monitoring<br>
+          for smarter agriculture.
+        </p>
+      </div>
+
+      <div class="hero__image-wrap">
+        <img src="assets/farm.png" alt="Digital twin visualization of a rice farm with drone multispectral scanning" class="hero__image" id="farmImage">
+        <div class="hero__image-fade" aria-hidden="true"></div>
+      </div>
+    </main>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/main.js"></script>
+  <script src="js/chatbot.js"></script>
+</body>
+</html>

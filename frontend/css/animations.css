@@ -1,0 +1,114 @@
+/* =========================================================
+   Subtle motion — navbar fade, image fade-in, button hover,
+   background gradient drift.
+   ========================================================= */
+
+/* Navbar fade + slide on load */
+@keyframes navbarFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.navbar {
+  animation: navbarFadeIn 0.6s ease-out both;
+}
+
+/* Hero copy fade in, slightly delayed after navbar */
+@keyframes heroCopyFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.hero__copy {
+  animation: heroCopyFadeIn 0.7s ease-out 0.15s both;
+}
+
+/* Hero image gentle fade + scale in */
+@keyframes heroImageFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.hero__image-wrap {
+  animation: heroImageFadeIn 0.8s ease-out 0.2s both;
+}
+
+/* Action cards staggered rise */
+@keyframes cardRiseIn {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.action-card {
+  animation: cardRiseIn 0.6s ease-out both;
+}
+
+.action-card:nth-child(1) { animation-delay: 0.35s; }
+.action-card:nth-child(2) { animation-delay: 0.45s; }
+.action-card:nth-child(3) { animation-delay: 0.55s; }
+
+/* Very subtle background gradient drift */
+@keyframes glowDrift {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(20px, 15px) scale(1.05);
+  }
+}
+
+.bg-glow--top-left {
+  animation: glowDrift 14s ease-in-out infinite;
+}
+
+.bg-glow--bottom-right {
+  animation: glowDrift 18s ease-in-out infinite reverse;
+}
+
+/* Notification bell subtle hover wiggle */
+@keyframes bellWiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-8deg); }
+  75% { transform: rotate(8deg); }
+}
+
+.icon-btn:hover svg {
+  animation: bellWiggle 0.4s ease;
+}
+
+/* Respect reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .navbar,
+  .hero__copy,
+  .hero__image-wrap,
+  .action-card,
+  .bg-glow--top-left,
+  .bg-glow--bottom-right,
+  .icon-btn:hover svg {
+    animation: none !important;
+  }
+}

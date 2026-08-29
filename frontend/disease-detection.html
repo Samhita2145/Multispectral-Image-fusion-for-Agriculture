@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Disease Detection · Multispectral Image Fusion</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/modules.css">
+  <link rel="stylesheet" href="css/animations.css">
+  <link rel="stylesheet" href="css/responsive.css">
+  <link rel="stylesheet" href="css/chatbot.css">
+</head>
+<body>
+
+  <div class="bg-glow bg-glow--top-left" aria-hidden="true"></div>
+  <div class="bg-glow bg-glow--bottom-right" aria-hidden="true"></div>
+
+  <div class="page">
+
+    <header class="navbar" role="banner">
+      <div class="navbar__brand">
+        <img src="assets/logo.png" alt="Multispectral Image Fusion logo" class="navbar__logo">
+        <div class="navbar__title"><span>Multispectral Image Fusion</span><span>For Agriculture</span></div>
+      </div>
+      <nav class="navbar__nav" role="navigation" aria-label="Primary">
+        <a href="index.html" class="nav-link">Dashboard</a>
+        <a href="image-analysis.html" class="nav-link">Image Analysis</a>
+        <a href="dataset.html" class="nav-link">Dataset Explorer</a>
+        <a href="disease-detection.html" class="nav-link">Disease Detection</a>
+        <a href="fusion.html" class="nav-link">Image Fusion</a>
+        <a href="reports.html" class="nav-link">Reports</a>
+        <a href="history.html" class="nav-link">History</a>
+        <a href="about.html" class="nav-link">About</a>
+      </nav>
+      <div class="navbar__actions">
+        <button class="icon-btn" aria-label="Notifications" type="button">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3C9.79 3 8 4.79 8 7V10.5C8 11.03 7.79 11.54 7.41 11.91L6 13.32C5.11 14.21 5.74 15.75 7 15.75H17C18.26 15.75 18.89 14.21 18 13.32L16.59 11.91C16.21 11.54 16 11.03 16 10.5V7C16 4.79 14.21 3 12 3Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M9.5 18.5C9.5 19.88 10.62 21 12 21C13.38 21 14.5 19.88 14.5 18.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="profile-menu-wrap">
+          <button class="profile-btn" type="button" aria-label="Account menu">
+            <span class="profile-icon"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="8.5" r="3.2" stroke="currentColor" stroke-width="1.6"/><path d="M4.5 20C5.9 16.7 8.7 15 12 15C15.3 15 18.1 16.7 19.5 20" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span>
+            <svg class="chevron" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <div class="profile-dropdown" id="profileMenu">
+            <div class="profile-dropdown__user"><strong>Demo User</strong><span>demo.user@agri.edu</span></div>
+            <a href="about.html" class="profile-dropdown__link">About this project</a>
+            <a href="login.html" class="profile-dropdown__link profile-dropdown__link--danger">Log out</a>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <div class="page-header">
+        <div>
+          <span class="page-header__eyebrow"><span class="badge__dot"></span> DISEASE DETECTION</span>
+          <h1 class="page-header__title">Detect &amp; diagnose rice leaf disease</h1>
+          <p class="page-header__subtitle">Upload a leaf image to get an instant prediction with confidence, severity, symptoms, and treatment guidance.</p>
+        </div>
+      </div>
+
+      <div class="section split-2">
+        <div>
+          <div class="glass-card" style="padding: var(--space-5);">
+            <div class="dropzone" id="ddDropzone">
+              <div class="dropzone__icon">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M12 16V4M12 4L7 9M12 4L17 9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 16V18C4 19.1 4.9 20 6 20H18C19.1 20 20 19.1 20 18V16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+              </div>
+              <div class="dropzone__title">Upload leaf image for diagnosis</div>
+              <div class="dropzone__hint">Drag & drop or click to browse</div>
+              <input type="file" id="ddFileInput" accept="image/*">
+            </div>
+          </div>
+
+          <div class="glass-card section" style="padding: var(--space-5); display:flex; align-items:center; justify-content:center; min-height:220px;" id="ddPreviewWrap">
+            <div class="preview-tile" style="width:220px; height:220px;" id="ddPreviewTile">
+              <div class="preview-tile__empty">Image preview will appear here</div>
+            </div>
+          </div>
+
+          <div class="section" id="nearbyCasesSection" style="display:none;">
+            <div class="section-title">Similar Cases Nearby <span class="badge-soft badge-soft--gray">Demo</span></div>
+            <div class="split-3" id="nearbyCases"></div>
+          </div>
+        </div>
+
+        <div class="glass-card" style="padding: var(--space-5);">
+          <div id="ddEmpty" class="empty-state">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M9 12L11 14L15 10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/></svg>
+            <div class="empty-state__title">No diagnosis yet</div>
+            <div>Upload a leaf image to run detection.</div>
+          </div>
+
+          <div id="ddLoading" style="display:none; text-align:center; padding: var(--space-7) 0;">
+            <div class="spinner spinner--dark" style="width:32px;height:32px;border-width:3px;margin:0 auto var(--space-4);"></div>
+            <div style="font-weight:700;">Diagnosing…</div>
+          </div>
+
+          <div id="ddNotLeaf" style="display:none; text-align:center; padding: var(--space-6) 0;">
+            <svg viewBox="0 0 24 24" fill="none" style="width:40px;height:40px;color:var(--color-amber-600, #b45309); margin:0 auto var(--space-3);"><path d="M12 9V13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M12 16.5V16.51" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/></svg>
+            <div style="font-weight:700; font-size:15px;">This doesn't look like a rice leaf photo</div>
+            <div style="font-size:12.5px;color:var(--color-text-muted); margin-top:6px; max-width:320px; margin-left:auto; margin-right:auto;">
+              The model is trained only on close-up rice leaf images, so it can't reliably classify photos of other subjects. Try a clear, close-up photo of a single rice leaf.
+            </div>
+          </div>
+
+          <div id="ddResult" style="display:none;">
+            <div style="display:flex; align-items:center; gap: var(--space-5);">
+              <div class="progress-ring" style="width:104px; height:104px; margin:0;">
+                <svg width="104" height="104" viewBox="0 0 104 104">
+                  <circle class="progress-ring__track" cx="52" cy="52" r="44" stroke-width="10"></circle>
+                  <circle class="progress-ring__value" id="ddConfidenceRing" cx="52" cy="52" r="44" stroke-width="10" stroke-dasharray="276.5" stroke-dashoffset="276.5"></circle>
+                </svg>
+                <div class="progress-ring__text">
+                  <span class="progress-ring__number" id="ddConfidenceNumber" style="font-size:19px;">0%</span>
+                </div>
+              </div>
+              <div>
+                <div id="ddDiseaseName" style="font-size:19px; font-weight:800;">—</div>
+                <span class="badge-soft badge-soft--amber" id="ddSeverityBadge" style="margin-top:6px;">Moderate</span>
+              </div>
+            </div>
+
+            <div class="section">
+              <div style="font-size:12.5px; font-weight:700; color:var(--color-text-muted); margin-bottom: var(--space-2); text-transform:uppercase; letter-spacing:0.04em;">Severity Gauge</div>
+              <div class="severity-track"><div class="severity-marker" id="ddSeverityMarker" style="left:50%;"></div></div>
+            </div>
+
+            <div class="section" style="margin-top: var(--space-5);">
+              <div class="accordion-item is-open">
+                <button class="accordion-trigger" data-accordion="symptoms">Symptoms <svg viewBox="0 0 24 24" fill="none"><path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+                <div class="accordion-panel" id="panel-symptoms"><p id="ddSymptoms">—</p></div>
+              </div>
+              <div class="accordion-item">
+                <button class="accordion-trigger" data-accordion="treatment">Treatment <svg viewBox="0 0 24 24" fill="none"><path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+                <div class="accordion-panel" id="panel-treatment"><p id="ddTreatment">—</p></div>
+              </div>
+              <div class="accordion-item">
+                <button class="accordion-trigger" data-accordion="prevention">Prevention <svg viewBox="0 0 24 24" fill="none"><path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+                <div class="accordion-panel" id="panel-prevention"><p id="ddPrevention">—</p></div>
+              </div>
+              <div class="accordion-item" id="ddNdviAccordionItem" style="display:none;">
+                <button class="accordion-trigger" data-accordion="ndvi">NDVI (from RGB + Pseudo-NIR) <svg viewBox="0 0 24 24" fill="none"><path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+                <div class="accordion-panel" id="panel-ndvi">
+                  <div style="display:flex; gap: var(--space-4); font-size:13px;">
+                    <div><strong id="ddNdviMean">—</strong><div style="color:var(--color-text-muted); font-size:11.5px;">Mean</div></div>
+                    <div><strong id="ddNdviMin">—</strong><div style="color:var(--color-text-muted); font-size:11.5px;">Min</div></div>
+                    <div><strong id="ddNdviMax">—</strong><div style="color:var(--color-text-muted); font-size:11.5px;">Max</div></div>
+                  </div>
+                  <div id="ddNdviHeatmapWrap" style="margin-top: var(--space-3);"></div>
+                </div>
+              </div>
+            </div>
+
+            <div style="display:flex; gap: var(--space-3); margin-top: var(--space-6);">
+              <button class="btn btn-primary btn-block" id="ddDownloadReportBtn">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M12 16V4M12 16L8 12M12 16L16 12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 18V19C4 19.6 4.4 20 5 20H19C19.6 20 20 19.6 20 19V18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+                Download Report
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/detection.js"></script>
+  <script src="js/chatbot.js"></script>
+</body>
+</html>

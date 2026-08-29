@@ -1,0 +1,30 @@
+# Python virtual environments
+.venv/
+venv/
+env/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Environment variables / secrets
+.env
+.env.*
+!.env.example
+
+# Databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Generated reports and uploaded files
+backend/generated_reports/
+backend/uploads/
+
+# Python tooling
+.pytest_cache/
+.mypy_cache/
+
+# VS Code local settings
+.vscode/

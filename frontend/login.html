@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Log In · Multispectral Image Fusion</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/modules.css">
+  <link rel="stylesheet" href="css/login.css">
+  <link rel="stylesheet" href="css/animations.css">
+  <link rel="stylesheet" href="css/responsive.css">
+</head>
+<body class="login-body">
+
+  <div class="bg-glow bg-glow--top-left" aria-hidden="true"></div>
+  <div class="bg-glow bg-glow--bottom-right" aria-hidden="true"></div>
+
+  <div class="login-screen">
+
+    <div class="login-visual">
+      <img src="assets/farm.png" alt="Digital twin visualization of a rice farm" class="login-visual__image">
+      <div class="login-visual__overlay"></div>
+      <div class="login-visual__content">
+        <div class="login-visual__brand">
+          <img src="assets/logo.png" alt="logo" class="login-visual__logo">
+          <span>Multispectral Image Fusion for Agriculture</span>
+        </div>
+        <h2>See crop health</h2>
+        <p>RGB + Pseudo-NIR fusion for quick rice disease detection — built for real agricultural workflows.</p>
+        <div class="login-visual__stats">
+          <div><strong>6</strong><span>Disease Classes</span></div>
+          <div><strong>85.7%</strong><span>Fusion Model Accuracy</span></div>
+          <div><strong>3,800+</strong><span>Dataset Images</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="login-form-side">
+      <div class="login-card glass-card">
+        <div class="login-card__header">
+          <img src="assets/logo.png" alt="logo" class="login-card__logo">
+          <h1>Welcome back</h1>
+          <p>Log in to your Rice Farm Workspace</p>
+        </div>
+
+        <form id="loginForm" novalidate>
+          <div class="field" id="emailField">
+            <label for="email">Email address</label>
+            <div class="input-icon-wrap">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M3 6.5C3 5.67 3.67 5 4.5 5H19.5C20.33 5 21 5.67 21 6.5V17.5C21 18.33 20.33 19 19.5 19H4.5C3.67 19 3 18.33 3 17.5V6.5Z" stroke="currentColor" stroke-width="1.6"/><path d="M4 6.5L12 12.5L20 6.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+              <input class="input" type="email" id="email" placeholder="you@agri.edu" autocomplete="username">
+            </div>
+            <span class="field__error">Please enter a valid email address.</span>
+          </div>
+
+          <div class="field" id="passwordField">
+            <label for="password">Password</label>
+            <div class="input-icon-wrap">
+              <svg viewBox="0 0 24 24" fill="none"><rect x="5" y="10.5" width="14" height="9.5" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M8 10.5V7.5C8 5.29 9.79 3.5 12 3.5C14.21 3.5 16 5.29 16 7.5V10.5" stroke="currentColor" stroke-width="1.6"/></svg>
+              <input class="input" type="password" id="password" placeholder="Enter your password" autocomplete="current-password">
+              <span class="input-toggle" id="togglePassword">SHOW</span>
+            </div>
+            <span class="field__error">Password must be at least 6 characters.</span>
+          </div>
+
+          <div class="login-row">
+            <label class="checkbox-row">
+              <input type="checkbox" id="rememberMe">
+              Remember me
+            </label>
+            <a href="#" class="login-link" id="forgotPasswordLink">Forgot password?</a>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block" id="loginSubmit">
+            <span id="loginSubmitText">Log In</span>
+          </button>
+
+          <div class="login-divider"><span>or continue with</span></div>
+
+          <button type="button" class="btn btn-secondary btn-block" id="googleLoginBtn">
+            <svg viewBox="0 0 24 24" width="18" height="18"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+            Continue with Google
+          </button>
+        </form>
+
+        <p class="login-footer">Don't have an account? <a href="#" id="createAccountLink">Create one</a></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="forgotModal">
+    <div class="modal-box" style="max-width: 440px;">
+      <div class="modal-box__header">
+        <span class="modal-box__title">Reset password</span>
+        <button class="modal-close" data-close-modal>
+          <svg viewBox="0 0 24 24" fill="none"><path d="M6 6L18 18M18 6L6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <p style="font-size:13.5px;color:var(--color-text-muted);margin-bottom:var(--space-4);">Enter the email linked to your account and we'll send a reset link (demo only — no email is actually sent).</p>
+      <div class="field">
+        <label for="resetEmail">Email address</label>
+        <input class="input" type="email" id="resetEmail" placeholder="you@agri.edu">
+      </div>
+      <button class="btn btn-primary btn-block" id="sendResetBtn">Send reset link</button>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="registerModal">
+    <div class="modal-box" style="max-width: 440px;">
+      <div class="modal-box__header">
+        <span class="modal-box__title">Create your account</span>
+        <button class="modal-close" data-close-modal>
+          <svg viewBox="0 0 24 24" fill="none"><path d="M6 6L18 18M18 6L6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <form id="registerForm" novalidate>
+        <div class="field" id="registerNameField">
+          <label for="registerName">Full name</label>
+          <input class="input" type="text" id="registerName" placeholder="Jane Farmer" autocomplete="name">
+          <span class="field__error">Please enter your name.</span>
+        </div>
+        <div class="field" id="registerEmailField">
+          <label for="registerEmail">Email address</label>
+          <input class="input" type="email" id="registerEmail" placeholder="you@agri.edu" autocomplete="email">
+          <span class="field__error">Please enter a valid email address.</span>
+        </div>
+        <div class="field" id="registerPasswordField">
+          <label for="registerPassword">Password</label>
+          <input class="input" type="password" id="registerPassword" placeholder="At least 8 characters, with a letter and a number" autocomplete="new-password">
+          <span class="field__error">Password must be at least 8 characters and include a letter and a number.</span>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block" id="registerSubmit">
+          <span id="registerSubmitText">Create account</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/login.js"></script>
+</body>
+</html>
