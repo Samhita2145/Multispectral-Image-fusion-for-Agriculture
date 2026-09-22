@@ -10,12 +10,7 @@ Frontend Terminal:
      http://127.0.0.1:8080/login.html
 
 
-Admin Panel link:
-    http://127.0.0.1:8080/admin-login.html
 
-    Log in with your existing admin account:
-            Email:    admin@gmail.com
-            Password: Password@123
 
 
    
