@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Login · Multispectral Image Fusion For Agriculture</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/admin.css">
+</head>
+<body class="admin-login-page">
+  <main class="admin-login-shell">
+    <section class="admin-login-intro">
+      <a class="admin-brand" href="index.html"><img src="assets/logo.png" alt=""> <span>Multispectral Image Fusion For Agriculture</span></a>
+      <div class="intro-copy">
+        <p class="eyebrow">ADMIN CONSOLE</p>
+        <h1>Keep the field data moving.</h1>
+        <p>Review platform activity, users, and rice disease trends from one focused workspace.</p>
+      </div>
+      <div class="intro-mark" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+    </section>
+
+    <section class="admin-login-panel" aria-labelledby="loginTitle">
+      <div class="admin-login-card">
+        <div class="admin-login-heading">
+          <div class="admin-icon" aria-hidden="true">A</div>
+          <p class="eyebrow">SECURE ACCESS</p>
+          <h2 id="loginTitle">Admin sign in</h2>
+          <p>Use your administrator account to continue.</p>
+        </div>
+        <div class="admin-alert" id="loginAlert" role="alert" hidden></div>
+        <form id="adminLoginForm" novalidate>
+          <label class="admin-field" id="emailField" for="adminEmail">
+            <span>Email address</span>
+            <input type="email" id="adminEmail" autocomplete="username" placeholder="admin@agri.edu" required>
+            <small>Please enter a valid email address.</small>
+          </label>
+          <label class="admin-field" id="passwordField" for="adminPassword">
+            <span>Password</span>
+            <input type="password" id="adminPassword" autocomplete="current-password" placeholder="Enter your password" required>
+            <small>Password is required.</small>
+          </label>
+          <button class="admin-button admin-button--primary admin-button--full" id="loginButton" type="submit">
+            <span id="loginButtonText">Sign in to console</span>
+          </button>
+        </form>
+        <a class="back-link" href="login.html">Back to user sign in</a>
+      </div>
+    </section>
+  </main>
+  <script src="js/admin.js"></script>
+</body>
+</html>

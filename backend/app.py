@@ -12,7 +12,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from database.database import init_db
-from routes import auth, chat, dashboard, history, prediction, reports
+from routes import admin, auth, chat, dashboard, history, prediction, reports
 from services import ml_service
 
 app = FastAPI(
@@ -51,7 +51,7 @@ def on_startup():
     # isn't slowed down by a cold joblib.load().
     ml_service.load_models()
 
-
+app.include_router(admin.router)
 app.include_router(auth.router)
 app.include_router(prediction.router)
 app.include_router(history.router)

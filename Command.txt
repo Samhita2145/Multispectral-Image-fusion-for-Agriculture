@@ -1,0 +1,21 @@
+Backend terminal:
+    cd C:\Users\Panchamii\OneDrive\Desktop\MIF-final\backend
+    .venv\Scripts\activate
+    python -m uvicorn app:app --reload
+
+
+Frontend Terminal:
+    cd C:\Users\Panchamii\OneDrive\Desktop\MIF-final\frontend
+    python -m http.server 8080
+     http://127.0.0.1:8080/login.html
+
+
+Admin Panel link:
+    http://127.0.0.1:8080/admin-login.html
+
+    Log in with your existing admin account:
+            Email:    admin@gmail.com
+            Password: Password@123
+
+
+   

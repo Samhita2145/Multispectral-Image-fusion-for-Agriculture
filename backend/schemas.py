@@ -129,3 +129,29 @@ class ChatResponse(BaseModel):
 
 
 TokenResponse.model_rebuild()
+
+
+class AdminUserItem(BaseModel):
+    id: int
+    name: str
+    email: str
+    created_at: datetime
+    prediction_count: int
+
+    class Config:
+        from_attributes = True
+
+
+class AdminDashboardStats(BaseModel):
+    total_users: int
+    total_predictions: int
+    total_reports: int
+    average_confidence: float
+    disease_counts: Dict[str, int]
+    recent_predictions: list
+
+
+class AdminDiseaseAnalytics(BaseModel):
+    disease_counts: Dict[str, int]
+    confidence_stats: Dict[str, float]
+    predictions_by_month: Dict[str, int]

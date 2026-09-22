@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard · Multispectral Image Fusion</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/admin.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+</head>
+<body class="admin-dashboard-page">
+  <div class="admin-layout">
+    <aside class="admin-sidebar">
+      <a class="admin-brand" href="admin-dashboard.html"><img src="assets/logo.png" alt=""> <span class="admin-brand__title">Multispectral Image Fusion for Agriculture <small>ADMIN CONSOLE</small></span></a>
+      <nav class="admin-nav" aria-label="Admin navigation">
+        <button class="admin-nav__link is-active" data-section="dashboard"><span class="nav-symbol">▦</span>Dashboard</button>
+        <button class="admin-nav__link" data-section="users"><span class="nav-symbol">♙</span>User Management</button>
+        <button class="admin-nav__link" data-section="predictions"><span class="nav-symbol">⌁</span>Prediction Management</button>
+        <button class="admin-nav__link" data-section="performance"><span class="nav-symbol">↗</span>Model Performance</button>
+        <button class="admin-nav__link" data-section="dataset"><span class="nav-symbol">▤</span>Dataset Statistics</button>
+        <button class="admin-nav__link" data-section="analytics"><span class="nav-symbol">◒</span>Disease Analytics</button>
+        <button class="admin-nav__link" data-section="reports"><span class="nav-symbol">▱</span>Report Management</button>
+      </nav>
+      <div class="admin-sidebar__footer"><button id="logoutButton" type="button">↪ Log out</button></div>
+    </aside>
+
+    <main class="admin-main">
+      <header class="admin-topbar">
+        <div><p class="eyebrow">OVERVIEW / <span id="sectionLabel">DASHBOARD</span></p><h1 id="pageTitle">Dashboard</h1></div>
+        <div class="admin-user"><span class="admin-user__avatar" id="userAvatar">A</span><span><strong id="adminName">Administrator</strong><small id="adminEmail">—</small></span></div>
+      </header>
+      <div class="admin-alert" id="dashboardAlert" role="alert" hidden></div>
+
+      <section class="admin-section is-visible" id="dashboardSection" aria-labelledby="pageTitle">
+        <div class="admin-stat-grid">
+          <article class="admin-stat"><span class="stat-label">TOTAL USERS</span><strong id="totalUsers">—</strong><span class="stat-note">Registered accounts</span></article>
+          <article class="admin-stat"><span class="stat-label">TOTAL PREDICTIONS</span><strong id="totalPredictions">—</strong><span class="stat-note">All recorded analyses</span></article>
+          <article class="admin-stat"><span class="stat-label">TOTAL REPORTS</span><strong id="totalReports">—</strong><span class="stat-note">Generated reports</span></article>
+          <article class="admin-stat"><span class="stat-label">AVERAGE CONFIDENCE</span><strong id="averageConfidence">—</strong><span class="stat-note">Across predictions</span></article>
+        </div>
+        <div class="admin-content-grid">
+          <article class="admin-panel admin-panel--chart"><div class="panel-heading"><div><p class="eyebrow">PREDICTIONS</p><h2>Disease distribution</h2></div></div><div class="chart-wrap"><canvas id="dashboardDiseaseChart"></canvas></div></article>
+          <article class="admin-panel"><div class="panel-heading"><div><p class="eyebrow">LATEST ACTIVITY</p><h2>Recent predictions</h2></div></div><div class="recent-list" id="recentPredictions"><div class="loading-state">Loading activity...</div></div></article>
+        </div>
+      </section>
+
+      <section class="admin-section" id="usersSection" aria-labelledby="usersTitle">
+        <div class="section-intro"><div><p class="eyebrow">DIRECTORY</p><h2 id="usersTitle">User Management</h2><p>Browse registered users and their prediction activity.</p></div><form class="search-form" id="userSearchForm"><label for="userSearch">Search users</label><input id="userSearch" type="search" placeholder="Name or email"><button class="admin-button admin-button--primary" type="submit">Search</button></form></div>
+        <div class="admin-panel table-panel"><div class="table-scroll"><table><thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Created date</th><th>Prediction count</th></tr></thead><tbody id="usersTableBody"></tbody></table></div><div class="loading-state" id="usersLoading">Loading users...</div></div>
+      </section>
+
+      <section class="admin-section" id="predictionsSection" aria-labelledby="predictionsTitle">
+        <div class="section-intro"><div><p class="eyebrow">ACTIVITY</p><h2 id="predictionsTitle">Prediction Management</h2><p>Review recorded classifications and their safe metadata.</p></div><form class="search-form" id="predictionSearchForm"><label for="predictionSearch">Search predictions</label><input id="predictionSearch" type="search" placeholder="User or disease"><select id="predictionModel"><option value="">All models</option><option value="rgb_only">RGB-only</option><option value="fusion">Fusion</option></select><button class="admin-button admin-button--primary" type="submit">Search</button></form></div>
+        <div class="admin-panel table-panel"><div class="table-scroll"><table><thead><tr><th>ID</th><th>User</th><th>Disease / class</th><th>Confidence</th><th>Model</th><th>Created date</th></tr></thead><tbody id="predictionsTableBody"></tbody></table></div><div class="loading-state" id="predictionsLoading">Loading predictions...</div></div>
+      </section>
+
+      <section class="admin-section" id="performanceSection" aria-labelledby="performanceTitle">
+        <div class="section-intro"><div><p class="eyebrow">EVALUATION</p><h2 id="performanceTitle">Model Performance</h2><p>Metrics reported by the project’s stored evaluation artifact.</p></div></div>
+        <div class="admin-panel performance-panel" id="performancePanel"><div class="loading-state" id="performanceLoading">Loading performance metrics...</div><div id="performanceContent" hidden><div class="metric-grid" id="performanceMetrics"></div><div class="metadata-list"><div><span>Model</span><strong id="performanceModel">Not available</strong></div><div><span>Feature set</span><strong id="performanceFeatureSet">Not available</strong></div><div><span>Feature count</span><strong id="performanceFeatureCount">Not available</strong></div></div></div></div>
+      </section>
+
+      <section class="admin-section" id="datasetSection" aria-labelledby="datasetTitle">
+        <div class="section-intro"><div><p class="eyebrow">SOURCE DATA</p><h2 id="datasetTitle">Dataset Statistics</h2><p>Counts calculated from the project dataset directories and evaluation summary.</p></div></div>
+        <div class="admin-stat-grid dataset-summary"><article class="admin-stat"><span class="stat-label">TOTAL IMAGES</span><strong id="datasetTotal">—</strong><span class="stat-note">RGB dataset files</span></article><article class="admin-stat"><span class="stat-label">CLASSES</span><strong id="datasetClasses">—</strong><span class="stat-note">Detected class folders</span></article><article class="admin-stat"><span class="stat-label">TRAINING SET</span><strong id="datasetTrain">—</strong><span class="stat-note">Stored evaluation split</span></article><article class="admin-stat"><span class="stat-label">TEST SET</span><strong id="datasetTest">—</strong><span class="stat-note">Stored evaluation split</span></article></div>
+        <div class="admin-panel table-panel"><div class="table-scroll"><table><thead><tr><th>Class / disease</th><th>Image count</th></tr></thead><tbody id="datasetTableBody"></tbody></table></div><div class="loading-state" id="datasetLoading">Loading dataset statistics...</div></div>
+      </section>
+
+      <section class="admin-section" id="analyticsSection" aria-labelledby="analyticsTitle">
+        <div class="section-intro"><div><p class="eyebrow">INSIGHTS</p><h2 id="analyticsTitle">Disease Analytics</h2><p>Understand disease frequency, confidence, and prediction volume over time.</p></div></div>
+        <div class="analytics-grid"><article class="admin-panel"><div class="panel-heading"><div><p class="eyebrow">DISTRIBUTION</p><h2>Predictions by disease</h2></div></div><div class="chart-wrap"><canvas id="analyticsDiseaseChart"></canvas></div></article><article class="admin-panel"><div class="panel-heading"><div><p class="eyebrow">MODEL SIGNAL</p><h2>Confidence by disease</h2></div></div><div class="chart-wrap"><canvas id="confidenceChart"></canvas></div></article></div>
+      </section>
+
+      <section class="admin-section" id="reportsSection" aria-labelledby="reportsTitle">
+        <div class="section-intro"><div><p class="eyebrow">DOCUMENTS</p><h2 id="reportsTitle">Report Management</h2><p>Review generated reports and their linked prediction details.</p></div><form class="search-form" id="reportSearchForm"><label for="reportSearch">Search reports</label><input id="reportSearch" type="search" placeholder="User or disease"><button class="admin-button admin-button--primary" type="submit">Search</button></form></div>
+        <div class="admin-panel table-panel"><div class="table-scroll"><table><thead><tr><th>Report ID</th><th>User</th><th>Prediction</th><th>Disease / class</th><th>Created date</th><th>Type</th><th>Status</th></tr></thead><tbody id="reportsTableBody"></tbody></table></div><div class="loading-state" id="reportsLoading">Loading reports...</div></div>
+      </section>
+    </main>
+  </div>
+  <script src="js/admin.js"></script>
+</body>
+</html>

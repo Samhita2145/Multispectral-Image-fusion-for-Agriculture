@@ -50,9 +50,11 @@ def _run_light_migrations() -> None:
             conn.exec_driver_sql("ALTER TABLE users ADD COLUMN google_id VARCHAR(255)")
             # Unique index added separately -- SQLite's ADD COLUMN can't
             # declare UNIQUE directly. NULLs are exempt from uniqueness in
-            # SQLite, so this is safe for all the existing local accounts
             # that don't have a google_id yet.
             conn.exec_driver_sql("CREATE UNIQUE INDEX IF NOT EXISTS ix_users_google_id ON users(google_id)")
+
+        if "is_admin" not in existing_cols:
+            conn.exec_driver_sql("ALTER TABLE users ADD COLUMN is_admin BOOLEAN NOT NULL DEFAULT 0")
 
         conn.commit()
 
